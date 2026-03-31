@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wrg_mcp_server"
+version = "0.1.0"
+description = "WRG MCP server scaffold"
+requires-python = ">=3.11"
+
+[project.scripts]
+wrg-mcp-server = "wrg_mcp_server.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
