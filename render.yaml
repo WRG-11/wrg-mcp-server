@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: wrg-mcp-server
+    runtime: docker
+    rootDir: apps/wrg_mcp_server
+    autoDeploy: true
