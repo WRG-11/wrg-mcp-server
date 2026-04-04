@@ -1,4 +1,9 @@
-"""FastMCP server definition for Winston site + PulseBoard."""
+"""FastMCP server definition for WinstonRedGuard.
+
+Exposes both remote HTTP tools (site/PulseBoard) and local CLI tools
+(research_motor, governance_check, app_registry, wrg_pulse, wrg_memory,
+wrg_pipeline, release_check).
+"""
 
 from __future__ import annotations
 
@@ -10,6 +15,7 @@ from mcp.server.fastmcp import FastMCP
 
 from wrg_mcp_server.config import AppConfig, ConfigError, ServiceConfig
 from wrg_mcp_server.http_utils import build_url, parse_response
+from wrg_mcp_server.local_tools import register_local_tools
 
 
 def create_mcp_server(
@@ -24,10 +30,13 @@ def create_mcp_server(
     cfg = config or AppConfig.from_env(os.environ)
 
     mcp = FastMCP(
-        "Winston Site + PulseBoard",
+        "WinstonRedGuard",
         instructions=(
-            "Expose Winston site and PulseBoard operations. "
-            "Use site_* tools for the company site APIs and pulseboard_* tools for dashboard data."
+            "WRG MCP server — exposes the full WinstonRedGuard monorepo.\n"
+            "Local tools: app_list, app_info, governance_run, research_*, "
+            "pulse_check, memory_*, pipeline_*, release_check.\n"
+            "Remote tools: site_* (company site APIs), pulseboard_* (GitHub health dashboard).\n"
+            "Use connector_status to check which remote services are configured."
         ),
         host=host,
         port=port,
@@ -156,5 +165,8 @@ def create_mcp_server(
             method="GET",
             path=f"/repos/{repo_id}/pulse",
         )
+
+    # ── Local WRG tools ─────────────────────────────────────────
+    register_local_tools(mcp)
 
     return mcp
