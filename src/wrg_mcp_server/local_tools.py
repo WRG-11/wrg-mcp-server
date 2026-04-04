@@ -181,48 +181,49 @@ def register_local_tools(mcp: FastMCP) -> None:
         """Search WRG memory store by keyword."""
         return await _run_cli(py, "-m", "wrg_memory.cli", "search", query)
 
-    # ── instinct pipeline ─────────────────────────────────────────
+    # ── instinct pipeline (via instinct-mcp package) ───────────────
+
+    from instinct.store import InstinctStore, project_fingerprint
+
+    _instinct = InstinctStore()
 
     @mcp.tool()
     async def instinct_observe(
         pattern: str, category: str = "sequence",
-        app: str = "", project: str = "",
+        source: str = "", project: str = "",
     ) -> dict[str, Any]:
         """Record a pattern observation. Increments confidence if already seen.
 
         Categories: sequence (A->B tool flow), preference (user choice),
         fix_pattern (recurring fix). Example: 'seq:governance_run->pipeline_list'
         """
-        args = [py, "-m", "wrg_memory.cli", "instinct", "observe", pattern]
-        if category:
-            args.extend(["--cat", category])
-        if app:
-            args.extend(["--app", app])
-        if project:
-            args.extend(["--project", project])
-        return await _run_cli(*args)
+        proj = project or project_fingerprint()
+        return await anyio.to_thread.run_sync(
+            partial(_instinct.observe, pattern, category=category, source=source, project=proj),
+        )
 
     @mcp.tool()
     async def instinct_list(
         min_confidence: int = 1, category: str = "",
     ) -> dict[str, Any]:
         """List observed instincts, optionally filtered by minimum confidence or category."""
-        args = [py, "-m", "wrg_memory.cli", "instinct", "list"]
-        if min_confidence > 1:
-            args.extend(["--min-confidence", str(min_confidence)])
-        if category:
-            args.extend(["--cat", category])
-        return await _run_cli(*args)
+        entries = await anyio.to_thread.run_sync(
+            partial(_instinct.list, min_confidence=min_confidence, category=category or None),
+        )
+        return {"instincts": entries, "count": len(entries)}
 
     @mcp.tool()
-    async def instinct_suggest() -> dict[str, Any]:
+    async def instinct_suggest(project: str = "") -> dict[str, Any]:
         """Get mature instincts (confidence >= 5) as suggestions."""
-        return await _run_cli(py, "-m", "wrg_memory.cli", "instinct", "suggest")
+        entries = await anyio.to_thread.run_sync(
+            partial(_instinct.suggest, project=project or None),
+        )
+        return {"suggestions": entries, "count": len(entries)}
 
     @mcp.tool()
     async def instinct_consolidate() -> dict[str, Any]:
         """Auto-promote instincts: confidence>=5 becomes mature, >=10 becomes rule."""
-        return await _run_cli(py, "-m", "wrg_memory.cli", "instinct", "consolidate")
+        return await anyio.to_thread.run_sync(_instinct.consolidate)
 
     # ── wrg_pipeline ──────────────────────────────────────────────
 
