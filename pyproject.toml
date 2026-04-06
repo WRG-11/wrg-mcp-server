@@ -24,3 +24,7 @@ wrg-mcp-server = "wrg_mcp_server.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
