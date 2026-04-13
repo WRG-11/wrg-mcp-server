@@ -18,9 +18,25 @@ import anyio
 
 from mcp.server.fastmcp import FastMCP
 
-# Repo root: four levels up from this file
-# (src/wrg_mcp_server/local_tools.py → wrg_mcp_server → src → wrg_mcp_server → apps → REPO_ROOT)
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+# Repo root: prefer WRG_REPO_ROOT env var, then walk up from this file.
+# When installed from wheel (e.g. release gate), parents[4] won't be the
+# monorepo so the env var or git-based fallback is needed.
+def _find_repo_root() -> Path:
+    env = os.environ.get("WRG_REPO_ROOT")
+    if env:
+        return Path(env)
+    # Walk up from file location (works for editable installs / dev)
+    candidate = Path(__file__).resolve().parents[4]
+    if (candidate / "apps").is_dir() and (candidate / "CLAUDE.md").is_file():
+        return candidate
+    # Walk up from cwd as last resort
+    cwd = Path.cwd()
+    for parent in [cwd, *cwd.parents]:
+        if (parent / "apps").is_dir() and (parent / "CLAUDE.md").is_file():
+            return parent
+    return candidate  # best guess
+
+_REPO_ROOT = _find_repo_root()
 _APPS_DIR = _REPO_ROOT / "apps"
 
 # Apps whose src/ directories need explicit PYTHONPATH (not installed in current Python)
