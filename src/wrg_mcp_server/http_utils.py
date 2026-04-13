@@ -1,11 +1,12 @@
-"""HTTP utility helpers."""
+"""HTTP utility helpers.
+
+These are only used when httpx is installed (for remote site/pulseboard tools).
+"""
 
 from __future__ import annotations
 
 from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
-
-import httpx
 
 
 def normalize_relative_path(path: str) -> str:
@@ -42,8 +43,8 @@ def build_url(base_url: str, path: str, query: Mapping[str, Any] | None = None) 
     return f"{absolute}?{urlencode(merged)}"
 
 
-def parse_response(response: httpx.Response) -> dict[str, Any]:
-    """Parse response body in a tool-friendly format."""
+def parse_response(response: Any) -> dict[str, Any]:
+    """Parse httpx response body in a tool-friendly format."""
     content_type = response.headers.get("content-type", "")
     body: Any
     if "application/json" in content_type.lower():

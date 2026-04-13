@@ -18,8 +18,13 @@ import anyio
 
 from mcp.server.fastmcp import FastMCP
 
-# Repo root: three levels up from this file (src/wrg_mcp_server/local_tools.py)
+# Repo root: four levels up from this file
+# (src/wrg_mcp_server/local_tools.py → wrg_mcp_server → src → wrg_mcp_server → apps → REPO_ROOT)
 _REPO_ROOT = Path(__file__).resolve().parents[4]
+_APPS_DIR = _REPO_ROOT / "apps"
+
+# Apps whose src/ directories need explicit PYTHONPATH (not installed in current Python)
+_NEEDS_PYTHONPATH: dict[str, str] = {}  # populated lazily
 
 
 def _python() -> str:
@@ -27,17 +32,34 @@ def _python() -> str:
     return sys.executable or "python"
 
 
+def _app_src_path(app_name: str) -> Path:
+    """Return the src/ directory for an app."""
+    return _APPS_DIR / app_name / "src"
+
+
+def _build_env(app_name: str | None = None) -> dict[str, str]:
+    """Build environment dict with PYTHONPATH for uninstalled apps."""
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
+    if app_name:
+        src = _app_src_path(app_name)
+        if src.is_dir():
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = f"{src}{os.pathsep}{existing}" if existing else str(src)
+    return env
+
+
 def _run_cli_sync(
     args: tuple[str, ...],
     timeout: float,
     cwd: str,
+    env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Run a CLI command synchronously and return structured result.
 
     Uses subprocess.run instead of asyncio subprocess to avoid
     Windows event-loop pipe-blocking issues under anyio/MCP.
     """
-    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
+    run_env = env or {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
     try:
         proc = subprocess.run(
             args,
@@ -45,7 +67,7 @@ def _run_cli_sync(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=cwd,
-            env=env,
+            env=run_env,
             timeout=timeout,
         )
     except subprocess.TimeoutExpired:
@@ -77,175 +99,152 @@ async def _run_cli(
     *args: str,
     timeout: float = 60.0,
     cwd: str | None = None,
+    app_name: str | None = None,
 ) -> dict[str, Any]:
     """Run a CLI command via anyio thread (works under anyio event loop)."""
     work_dir = cwd or str(_REPO_ROOT)
+    env = _build_env(app_name)
     return await anyio.to_thread.run_sync(
-        partial(_run_cli_sync, args, timeout, work_dir),
+        partial(_run_cli_sync, args, timeout, work_dir, env),
     )
+
+
+def _read_registry() -> list[dict[str, Any]]:
+    """Read app registry directly from registry.json (no subprocess needed)."""
+    reg_path = _APPS_DIR / "app_registry" / "src" / "app_registry" / "data" / "registry.json"
+    if not reg_path.exists():
+        return []
+    data = json.loads(reg_path.read_text(encoding="utf-8"))
+    return data.get("apps", [])
+
+
+def _read_pyproject(app_name: str) -> dict[str, Any]:
+    """Read pyproject.toml for an app and return parsed TOML dict."""
+    pyproject = _APPS_DIR / app_name / "pyproject.toml"
+    if not pyproject.exists():
+        return {}
+    try:
+        import tomllib
+    except ModuleNotFoundError:
+        try:
+            import tomli as tomllib  # type: ignore[no-redef]
+        except ModuleNotFoundError:
+            return {}
+    return tomllib.loads(pyproject.read_text(encoding="utf-8"))
+
+
+def _count_tests(app_name: str) -> int:
+    """Count test files under an app's tests/ directory."""
+    tests_dir = _APPS_DIR / app_name / "tests"
+    if not tests_dir.is_dir():
+        return 0
+    return sum(1 for f in tests_dir.rglob("test_*.py"))
+
+
+def _last_commit(app_name: str) -> str:
+    """Get the last git commit touching an app directory."""
+    app_path = _APPS_DIR / app_name
+    try:
+        proc = subprocess.run(
+            ["git", "log", "-1", "--format=%h %s (%cr)", "--", str(app_path)],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            timeout=10,
+        )
+        return proc.stdout.decode("utf-8", errors="replace").strip() or "no commits"
+    except Exception:
+        return "unknown"
 
 
 def register_local_tools(mcp: FastMCP) -> None:
     """Register all local WRG tools on the given FastMCP server."""
 
     py = _python()
+    repo_root = str(_REPO_ROOT)
 
     # ── app_registry ──────────────────────────────────────────────
 
     @mcp.tool()
     async def app_list() -> dict[str, Any]:
-        """List all WRG apps with their status and tier."""
-        return await _run_cli(py, "-m", "app_registry.cli", "list")
+        """List all WRG apps with their status, class, and tier.
+
+        Returns structured data from registry.json — no subprocess needed.
+        """
+        apps = await anyio.to_thread.run_sync(_read_registry)
+        summary = []
+        for a in apps:
+            summary.append({
+                "name": a["name"],
+                "status": a.get("status", "unknown"),
+                "class": a.get("class", ""),
+                "primary_role": a.get("primary_role", ""),
+            })
+        active = sum(1 for a in apps if a.get("status") == "active")
+        return {
+            "ok": True,
+            "apps": summary,
+            "total": len(apps),
+            "active": active,
+        }
 
     @mcp.tool()
-    async def app_info(app_name: str) -> dict[str, Any]:
-        """Get detailed info about a specific WRG app (JSON)."""
-        return await _run_cli(py, "-m", "app_registry.cli", "show", app_name)
+    async def app_info(name: str) -> dict[str, Any]:
+        """Get detailed info about a specific WRG app.
+
+        Includes: registry entry, pyproject.toml metadata, test count, last commit.
+        """
+        def _gather() -> dict[str, Any]:
+            # Registry entry
+            apps = _read_registry()
+            entry = next((a for a in apps if a["name"] == name), None)
+            if entry is None:
+                return {"ok": False, "error": f"App not found: {name}"}
+
+            # pyproject.toml
+            pyproject = _read_pyproject(name)
+            project_meta = pyproject.get("project", {})
+
+            # Test count
+            test_count = _count_tests(name)
+
+            # Last commit
+            commit = _last_commit(name)
+
+            return {
+                "ok": True,
+                "name": name,
+                "registry": entry,
+                "version": project_meta.get("version", "unknown"),
+                "description": project_meta.get("description", ""),
+                "dependencies": project_meta.get("dependencies", []),
+                "requires_python": project_meta.get("requires-python", ""),
+                "test_files": test_count,
+                "last_commit": commit,
+            }
+
+        return await anyio.to_thread.run_sync(_gather)
 
     # ── governance_check ──────────────────────────────────────────
 
     @mcp.tool()
-    async def governance_run() -> dict[str, Any]:
-        """Run the 55-gate governance check across all WRG apps."""
-        return await _run_cli(py, "-m", "governance_check.cli", "check", timeout=120.0)
+    async def governance_run(app: str = "") -> dict[str, Any]:
+        """Run the governance check across WRG apps.
 
-    # ── research_motor ────────────────────────────────────────────
-
-    @mcp.tool()
-    async def research_history() -> dict[str, Any]:
-        """List recent research_motor runs (JSON)."""
-        return await _run_cli(py, "-m", "research_motor.cli", "history", "--json")
-
-    @mcp.tool()
-    async def research_report(run_id: str) -> dict[str, Any]:
-        """Get the report for a specific research_motor run (JSON)."""
-        return await _run_cli(py, "-m", "research_motor.cli", "report", "--run", run_id, "--json")
-
-    @mcp.tool()
-    async def research_scan(input_file: str) -> dict[str, Any]:
-        """Run research_motor scan on a JSON input file. Returns candidates."""
-        return await _run_cli(
-            py, "-m", "research_motor.cli", "scan", "--input", input_file, "--json",
-            timeout=120.0,
-        )
-
-    @mcp.tool()
-    async def research_watch(preset: str = "default") -> dict[str, Any]:
-        """Run research_motor watch with a preset. Fetches, scores, decides in one pass."""
-        return await _run_cli(
-            py, "-m", "research_motor.cli", "watch", "--preset", preset, "--json",
-            timeout=180.0,
-        )
-
-    # ── wrg_pulse ─────────────────────────────────────────────────
-
-    @mcp.tool()
-    async def pulse_check() -> dict[str, Any]:
-        """Check WRG system health — all apps, governance, pipelines (JSON)."""
-        return await _run_cli(
-            py, "-m", "wrg_pulse.cli", "check", "--json",
-            "--repo-root", str(_REPO_ROOT),
-        )
-
-    # ── wrg_memory ───────────────────────────────────────��────────
-
-    @mcp.tool()
-    async def memory_get(key: str) -> dict[str, Any]:
-        """Get a value from WRG cross-app memory store."""
-        return await _run_cli(py, "-m", "wrg_memory.cli", "get", key)
-
-    @mcp.tool()
-    async def memory_set(key: str, value: str, app: str = "", category: str = "") -> dict[str, Any]:
-        """Set a value in WRG cross-app memory store."""
-        args = [py, "-m", "wrg_memory.cli", "set", key, value]
-        if app:
-            args.extend(["--app", app])
-        if category:
-            args.extend(["--cat", category])
-        return await _run_cli(*args)
-
-    @mcp.tool()
-    async def memory_list(app: str = "", category: str = "", prefix: str = "") -> dict[str, Any]:
-        """List entries in WRG memory store, with optional filters."""
-        args = [py, "-m", "wrg_memory.cli", "list"]
-        if app:
-            args.extend(["--app", app])
-        if category:
-            args.extend(["--cat", category])
-        if prefix:
-            args.extend(["--prefix", prefix])
-        return await _run_cli(*args)
-
-    @mcp.tool()
-    async def memory_search(query: str) -> dict[str, Any]:
-        """Search WRG memory store by keyword."""
-        return await _run_cli(py, "-m", "wrg_memory.cli", "search", query)
-
-    # ── instinct pipeline (via instinct-mcp package) ───────────────
-
-    from instinct.store import InstinctStore, project_fingerprint
-
-    _instinct = InstinctStore()
-
-    @mcp.tool()
-    async def instinct_observe(
-        pattern: str, category: str = "sequence",
-        source: str = "", project: str = "",
-    ) -> dict[str, Any]:
-        """Record a pattern observation. Increments confidence if already seen.
-
-        Categories: sequence (A->B tool flow), preference (user choice),
-        fix_pattern (recurring fix). Example: 'seq:governance_run->pipeline_list'
+        Pass app name to check a single app, or leave empty for all.
+        Returns structured governance results.
         """
-        proj = project or project_fingerprint()
-        return await anyio.to_thread.run_sync(
-            partial(_instinct.observe, pattern, category=category, source=source, project=proj),
-        )
+        args = [py, "-m", "governance_check.cli", "check",
+                "--repo-root", repo_root]
+        result = await _run_cli(*args, timeout=120.0,
+                                app_name="governance_check")
+        if app and result.get("ok") and isinstance(result.get("output"), str):
+            # Filter output for the specific app
+            lines = result["output"].splitlines()
+            filtered = [l for l in lines if app in l or l.startswith("governance")]
+            result["output"] = "\n".join(filtered) if filtered else result["output"]
+        return result
 
-    @mcp.tool()
-    async def instinct_list(
-        min_confidence: int = 1, category: str = "",
-    ) -> dict[str, Any]:
-        """List observed instincts, optionally filtered by minimum confidence or category."""
-        entries = await anyio.to_thread.run_sync(
-            partial(_instinct.list, min_confidence=min_confidence, category=category or None),
-        )
-        return {"instincts": entries, "count": len(entries)}
-
-    @mcp.tool()
-    async def instinct_suggest(project: str = "") -> dict[str, Any]:
-        """Get mature instincts (confidence >= 5) as suggestions."""
-        entries = await anyio.to_thread.run_sync(
-            partial(_instinct.suggest, project=project or None),
-        )
-        return {"suggestions": entries, "count": len(entries)}
-
-    @mcp.tool()
-    async def instinct_consolidate() -> dict[str, Any]:
-        """Auto-promote instincts: confidence>=5 becomes mature, >=10 becomes rule."""
-        return await anyio.to_thread.run_sync(_instinct.consolidate)
-
-    # ── wrg_pipeline ──────────────────────────────────────────────
-
-    @mcp.tool()
-    async def pipeline_list() -> dict[str, Any]:
-        """List all registered WRG pipelines."""
-        return await _run_cli(py, "-m", "wrg_pipeline.cli", "list")
-
-    @mcp.tool()
-    async def pipeline_show(name: str) -> dict[str, Any]:
-        """Show DAG structure for a WRG pipeline."""
-        return await _run_cli(py, "-m", "wrg_pipeline.cli", "show", name)
-
-    @mcp.tool()
-    async def pipeline_run(name: str, dry: bool = False) -> dict[str, Any]:
-        """Run a WRG pipeline. Use dry=True for a dry-run without side effects."""
-        args = [py, "-m", "wrg_pipeline.cli", "run", name]
-        if dry:
-            args.append("--dry")
-        return await _run_cli(*args, timeout=300.0)
-
-    # ── release gate ───���──────────────────────────────────────────
+    # ── release gate ──────────────────────────────────────────────
 
     @mcp.tool()
     async def release_check(app_name: str = "") -> dict[str, Any]:
@@ -254,9 +253,117 @@ def register_local_tools(mcp: FastMCP) -> None:
         Pass app_name for a single app, or leave empty for all apps.
         """
         ps_script = str(_REPO_ROOT / "tools" / "release_check.ps1")
-        args = ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script]
+        args = ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", ps_script]
         if app_name:
             args.extend(["-App", app_name])
         else:
             args.append("-All")
         return await _run_cli(*args, timeout=600.0)
+
+    # ── wrg_pipeline ──────────────────────────────────────────────
+
+    @mcp.tool()
+    async def pipeline_list() -> dict[str, Any]:
+        """List all registered WRG pipelines."""
+        return await _run_cli(py, "-m", "wrg_pipeline.cli", "list",
+                              app_name="wrg_pipeline")
+
+    @mcp.tool()
+    async def pipeline_show(name: str) -> dict[str, Any]:
+        """Show DAG structure for a WRG pipeline."""
+        return await _run_cli(py, "-m", "wrg_pipeline.cli", "show", name,
+                              app_name="wrg_pipeline")
+
+    @mcp.tool()
+    async def pipeline_run(name: str, dry: bool = False) -> dict[str, Any]:
+        """Run a WRG pipeline. Use dry=True for a dry-run without side effects."""
+        args = [py, "-m", "wrg_pipeline.cli", "run", name]
+        if dry:
+            args.append("--dry")
+        return await _run_cli(*args, timeout=300.0, app_name="wrg_pipeline")
+
+    # ── wrg_pulse ─────────────────────────────────────────────────
+
+    @mcp.tool()
+    async def pulse_check() -> dict[str, Any]:
+        """Check WRG system health — all apps, governance, pipelines (JSON)."""
+        return await _run_cli(
+            py, "-m", "wrg_pulse.cli", "check", "--json",
+            "--repo-root", repo_root,
+            app_name="wrg_pulse",
+        )
+
+    # ── wrg_memory ────────────────────────────────────────────────
+
+    @mcp.tool()
+    async def memory_get(key: str) -> dict[str, Any]:
+        """Get a value from WRG cross-app memory store."""
+        return await _run_cli(py, "-m", "wrg_memory.cli", "get", key,
+                              app_name="wrg_memory")
+
+    @mcp.tool()
+    async def memory_set(key: str, value: str, app: str = "",
+                         category: str = "") -> dict[str, Any]:
+        """Set a value in WRG cross-app memory store."""
+        args = [py, "-m", "wrg_memory.cli", "set", key, value]
+        if app:
+            args.extend(["--app", app])
+        if category:
+            args.extend(["--cat", category])
+        return await _run_cli(*args, app_name="wrg_memory")
+
+    @mcp.tool()
+    async def memory_list(app: str = "", category: str = "",
+                          prefix: str = "") -> dict[str, Any]:
+        """List entries in WRG memory store, with optional filters."""
+        args = [py, "-m", "wrg_memory.cli", "list"]
+        if app:
+            args.extend(["--app", app])
+        if category:
+            args.extend(["--cat", category])
+        if prefix:
+            args.extend(["--prefix", prefix])
+        return await _run_cli(*args, app_name="wrg_memory")
+
+    @mcp.tool()
+    async def memory_search(query: str) -> dict[str, Any]:
+        """Search WRG memory store by keyword."""
+        return await _run_cli(py, "-m", "wrg_memory.cli", "search", query,
+                              app_name="wrg_memory")
+
+    # ── research_motor ────────────────────────────────────────────
+
+    @mcp.tool()
+    async def research_history() -> dict[str, Any]:
+        """List recent research_motor runs (JSON)."""
+        return await _run_cli(py, "-m", "research_motor.cli", "history", "--json",
+                              app_name="research_motor")
+
+    @mcp.tool()
+    async def research_report(run_id: str) -> dict[str, Any]:
+        """Get the report for a specific research_motor run (JSON)."""
+        return await _run_cli(py, "-m", "research_motor.cli", "report",
+                              "--run", run_id, "--json",
+                              app_name="research_motor")
+
+    @mcp.tool()
+    async def research_scan(query: str) -> dict[str, Any]:
+        """Run research_motor scan on a JSON input file. Returns candidates."""
+        return await _run_cli(
+            py, "-m", "research_motor.cli", "scan",
+            "--input", query, "--json",
+            timeout=120.0, app_name="research_motor",
+        )
+
+    @mcp.tool()
+    async def research_watch(preset: str = "default") -> dict[str, Any]:
+        """Run research_motor watch with a preset.
+
+        Fetches, scores, decides in one pass.
+        """
+        return await _run_cli(
+            py, "-m", "research_motor.cli", "watch",
+            "--preset", preset, "--json",
+            timeout=180.0, app_name="research_motor",
+        )

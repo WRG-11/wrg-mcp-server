@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import sys
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from wrg_mcp_server.local_tools import _run_cli, register_local_tools, _REPO_ROOT
+from wrg_mcp_server.local_tools import (
+    _REPO_ROOT,
+    _build_env,
+    _count_tests,
+    _last_commit,
+    _read_pyproject,
+    _read_registry,
+    _run_cli,
+    register_local_tools,
+)
 
 
 # ── _run_cli unit tests ──────────────────────────────────────────
@@ -69,6 +76,74 @@ async def test_run_cli_timeout() -> None:
     assert "timed out" in result["error"].lower()
 
 
+@pytest.mark.asyncio
+async def test_run_cli_with_app_name_sets_pythonpath() -> None:
+    """app_name parameter adds the app's src/ to PYTHONPATH."""
+    code = "import os; print(os.environ.get('PYTHONPATH', ''))"
+    result = await _run_cli(
+        sys.executable, "-c", code,
+        app_name="wrg_pulse",
+    )
+    assert result["ok"] is True
+    assert "wrg_pulse" in str(result["output"])
+
+
+# ── Helper function tests ────────────────────────────────────────
+
+
+def test_read_registry() -> None:
+    """Registry returns a non-empty list of app dicts."""
+    apps = _read_registry()
+    assert len(apps) > 0
+    assert all("name" in a for a in apps)
+    assert all("status" in a for a in apps)
+
+
+def test_read_pyproject() -> None:
+    """Can parse a real pyproject.toml from the monorepo."""
+    data = _read_pyproject("wrg_mcp_server")
+    assert "project" in data
+    assert data["project"]["name"] == "wrg_mcp_server"
+
+
+def test_read_pyproject_missing() -> None:
+    """Missing app returns empty dict, no crash."""
+    data = _read_pyproject("__nonexistent_app__")
+    assert data == {}
+
+
+def test_count_tests() -> None:
+    """Count test files for a real app."""
+    count = _count_tests("wrg_mcp_server")
+    assert count >= 1  # at least this test file
+
+
+def test_count_tests_missing() -> None:
+    """Missing app returns 0."""
+    assert _count_tests("__nonexistent__") == 0
+
+
+def test_last_commit() -> None:
+    """Last commit returns a non-empty string for a real app."""
+    commit = _last_commit("wrg_mcp_server")
+    assert commit != ""
+    assert commit != "unknown"
+
+
+def test_build_env_without_app() -> None:
+    """Without app_name, env has standard keys."""
+    env = _build_env()
+    assert "PYTHONIOENCODING" in env
+    assert env["PYTHONIOENCODING"] == "utf-8"
+
+
+def test_build_env_with_app() -> None:
+    """With app_name, PYTHONPATH includes the app's src/."""
+    env = _build_env("wrg_pulse")
+    assert "PYTHONPATH" in env
+    assert "wrg_pulse" in env["PYTHONPATH"]
+
+
 # ── register_local_tools ──────────────────────────────────────────
 
 
@@ -78,8 +153,6 @@ def test_register_local_tools_adds_tools() -> None:
 
     server = create_mcp_server(host="127.0.0.1", port=9999)
 
-    # FastMCP stores tools internally; list them via the _tool_manager
-    # The server should have both remote (site/pulseboard) and local tools
     tool_names = set()
     for tool in server._tool_manager._tools.values():
         tool_names.add(tool.name)
@@ -111,6 +184,5 @@ def test_register_local_tools_adds_tools() -> None:
 def test_repo_root_exists() -> None:
     """_REPO_ROOT points to the actual WRG monorepo root."""
     assert _REPO_ROOT.exists()
-    # CLAUDE.md only exists in source checkout, not in wheel-based CI testing
     if (_REPO_ROOT / "CLAUDE.md").exists():
         assert (_REPO_ROOT / "apps").is_dir()

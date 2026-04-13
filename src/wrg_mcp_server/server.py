@@ -7,15 +7,20 @@ wrg_pipeline, release_check).
 
 from __future__ import annotations
 
-from typing import Any, Mapping
 import os
+from typing import Any, Mapping
 
-import httpx
 from mcp.server.fastmcp import FastMCP
 
 from wrg_mcp_server.config import AppConfig, ConfigError, ServiceConfig
-from wrg_mcp_server.http_utils import build_url, parse_response
 from wrg_mcp_server.local_tools import register_local_tools
+
+# httpx is optional — only needed for remote tools (site/pulseboard)
+try:
+    import httpx
+    _HAS_HTTPX = True
+except ImportError:
+    _HAS_HTTPX = False
 
 
 def create_mcp_server(
@@ -53,6 +58,9 @@ def create_mcp_server(
         query: Mapping[str, Any] | None = None,
         payload: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
+        if not _HAS_HTTPX:
+            return {"ok": False, "error": "httpx not installed — remote tools unavailable"}
+        from wrg_mcp_server.http_utils import build_url, parse_response
         url = build_url(service.base_url, path, query=query)
         headers = service.build_headers()
         timeout = httpx.Timeout(service.timeout_seconds)
@@ -80,6 +88,7 @@ def create_mcp_server(
     def connector_status() -> dict[str, Any]:
         """Show connector configuration status (without secrets)."""
         return {
+            "httpx_available": _HAS_HTTPX,
             "site_configured": cfg.site is not None,
             "site_base_url": cfg.site.base_url if cfg.site else None,
             "pulseboard_configured": cfg.pulseboard is not None,

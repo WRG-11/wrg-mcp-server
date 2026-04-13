@@ -5,7 +5,7 @@ from wrg_mcp_server.server import create_mcp_server
 
 
 def test_import_and_version() -> None:
-    assert __version__ == "0.2.0"
+    assert __version__ == "1.0.0"
 
 
 def test_create_server() -> None:
