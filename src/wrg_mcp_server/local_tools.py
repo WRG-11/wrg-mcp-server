@@ -299,15 +299,15 @@ def register_local_tools(mcp: FastMCP) -> None:
             args.append("--dry")
         return await _run_cli(*args, timeout=300.0, app_name="wrg_pipeline")
 
-    # ── wrg_pulse ─────────────────────────────────────────────────
+    # ── pulse_core ────────────────────────────────────────────────
 
     @mcp.tool()
     async def pulse_check() -> dict[str, Any]:
         """Check WRG system health — all apps, governance, pipelines (JSON)."""
         return await _run_cli(
-            py, "-m", "wrg_pulse.cli", "check", "--json",
+            py, "-m", "pulse_core.pulse_cli", "check", "--json",
             "--repo-root", repo_root,
-            app_name="wrg_pulse",
+            app_name="pulse_core",
         )
 
     # ── wrg_memory ────────────────────────────────────────────────

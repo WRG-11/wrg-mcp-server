@@ -1,7 +1,7 @@
 """FastMCP server definition for WinstonRedGuard.
 
 Exposes both remote HTTP tools (site/PulseBoard) and local CLI tools
-(research_motor, governance_check, app_registry, wrg_pulse, wrg_memory,
+(research_motor, governance_check, app_registry, pulse_core, wrg_memory,
 wrg_pipeline, release_check).
 """
 
