@@ -143,7 +143,7 @@ def _read_pyproject(app_name: str) -> dict[str, Any]:
         import tomllib
     except ModuleNotFoundError:
         try:
-            import tomli as tomllib  # type: ignore[no-redef]
+            import tomli as tomllib  # type: ignore[no-redef]  # Python 3.10 fallback for built-in tomllib
         except ModuleNotFoundError:
             return {}
     return tomllib.loads(pyproject.read_text(encoding="utf-8"))
