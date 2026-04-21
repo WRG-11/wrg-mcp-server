@@ -35,4 +35,4 @@ testpaths = ["tests"]
 [tool.coverage.report]
 # Baseline no-regression floor. Apps above this today (measured 2026-04-21)
 # shouldn't drop below it; raise individually once they stabilise higher.
-fail_under = 40
+fail_under = 60
