@@ -48,6 +48,28 @@ def _python() -> str:
     return sys.executable or "python"
 
 
+def _mutations_allowed() -> bool:
+    """Whether state-changing tools (memory_set, pipeline_run) may execute.
+
+    Gated by ``WRG_MCP_ALLOW_MUTATIONS`` so an MCP session can't silently
+    write to the user's memory store or kick off a pipeline unless the
+    operator explicitly opted in.
+    """
+    raw = (os.environ.get("WRG_MCP_ALLOW_MUTATIONS") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _mutation_denied(tool: str) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "error": (
+            f"{tool} is a mutation and WRG_MCP_ALLOW_MUTATIONS is not set. "
+            "Set WRG_MCP_ALLOW_MUTATIONS=1 in the MCP server environment "
+            "to allow state-changing tools."
+        ),
+    }
+
+
 def _app_src_path(app_name: str) -> Path:
     """Return the src/ directory for an app."""
     return _APPS_DIR / app_name / "src"
@@ -292,11 +314,26 @@ def register_local_tools(mcp: FastMCP) -> None:
                               app_name="wrg_pipeline")
 
     @mcp.tool()
-    async def pipeline_run(name: str, dry: bool = False) -> dict[str, Any]:
-        """Run a WRG pipeline. Use dry=True for a dry-run without side effects."""
+    async def pipeline_run(
+        name: str,
+        dry: bool = False,
+        partial_ok: bool = False,
+    ) -> dict[str, Any]:
+        """Run a WRG pipeline (LONG-RUNNING — can take minutes).
+
+        MUTATION: a non-dry run spawns real subprocesses and may write to
+        the filesystem, so it requires WRG_MCP_ALLOW_MUTATIONS=1 in the
+        server env. ``dry=True`` bypasses the guard since no side effects
+        occur. ``partial_ok=True`` passes ``--partial-ok-exit-2`` through
+        so partial_success runs surface a distinct exit code.
+        """
+        if not dry and not _mutations_allowed():
+            return _mutation_denied("pipeline_run")
         args = [py, "-m", "wrg_pipeline.cli", "run", name]
         if dry:
             args.append("--dry")
+        if partial_ok:
+            args.append("--partial-ok-exit-2")
         return await _run_cli(*args, timeout=300.0, app_name="wrg_pipeline")
 
     # ── pulse_core ────────────────────────────────────────────────
@@ -320,13 +357,25 @@ def register_local_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def memory_set(key: str, value: str, app: str = "",
-                         category: str = "") -> dict[str, Any]:
-        """Set a value in WRG cross-app memory store."""
+                         category: str = "",
+                         ttl_seconds: int | None = None) -> dict[str, Any]:
+        """Set a value in WRG cross-app memory store.
+
+        MUTATION: requires WRG_MCP_ALLOW_MUTATIONS=1 in the server env.
+        ``ttl_seconds`` is converted to hours (ceil) since the underlying
+        store is hour-granular.
+        """
+        if not _mutations_allowed():
+            return _mutation_denied("memory_set")
         args = [py, "-m", "wrg_memory.cli", "set", key, value]
         if app:
             args.extend(["--app", app])
         if category:
             args.extend(["--cat", category])
+        if ttl_seconds is not None:
+            import math
+            ttl_hours = max(1, math.ceil(ttl_seconds / 3600))
+            args.extend(["--ttl", str(ttl_hours)])
         return await _run_cli(*args, app_name="wrg_memory")
 
     @mcp.tool()
@@ -343,10 +392,18 @@ def register_local_tools(mcp: FastMCP) -> None:
         return await _run_cli(*args, app_name="wrg_memory")
 
     @mcp.tool()
-    async def memory_search(query: str) -> dict[str, Any]:
-        """Search WRG memory store by keyword."""
-        return await _run_cli(py, "-m", "wrg_memory.cli", "search", query,
-                              app_name="wrg_memory")
+    async def memory_search(query: str, limit: int = 10) -> dict[str, Any]:
+        """Search WRG memory store by keyword.
+
+        ``limit`` is passed as ``--limit N`` to the underlying CLI; older
+        CLI versions ignore it, newer ones slice results server-side.
+        """
+        safe_limit = max(1, min(int(limit), 500))
+        return await _run_cli(
+            py, "-m", "wrg_memory.cli", "search", query,
+            "--limit", str(safe_limit),
+            app_name="wrg_memory",
+        )
 
     # ── research_motor ────────────────────────────────────────────
 
@@ -383,3 +440,148 @@ def register_local_tools(mcp: FastMCP) -> None:
             "--preset", preset, "--json",
             timeout=180.0, app_name="research_motor",
         )
+
+    @mcp.tool()
+    async def research_scan_summary() -> dict[str, Any]:
+        """Return the most recent research_motor watch summary.
+
+        Wraps ``research history --json`` and surfaces the latest run so
+        Claude can say "this morning's scan found 279 candidates" without
+        parsing the full history.
+        """
+        result = await _run_cli(
+            py, "-m", "research_motor.cli", "history", "--json",
+            app_name="research_motor",
+        )
+        if not result.get("ok"):
+            return result
+        history = result.get("output") or []
+        if not isinstance(history, list) or not history:
+            return {"ok": True, "latest": None, "history_count": 0}
+        return {
+            "ok": True,
+            "latest": history[0],
+            "history_count": len(history),
+        }
+
+    # ── wrg_vault ─────────────────────────────────────────────────
+
+    @mcp.tool()
+    async def vault_audit(
+        warn_days: int = 14,
+        stale_days: int = 365,
+    ) -> dict[str, Any]:
+        """Audit the encrypted vault for expiring or stale secrets.
+
+        Composes ``wrg-vault list --json`` and ``wrg-vault expiring --days N --json``
+        into a single structured report:
+
+            {
+              "ok": True,
+              "total": int,
+              "expiring_soon": [name, ...],     # within ``warn_days``
+              "stale":         [name, ...],     # updated_at older than ``stale_days``
+              "details": {name: entry, ...},    # full vault entries
+            }
+        """
+        py_exe = _python()
+        all_resp = await _run_cli(
+            py_exe, "-m", "wrg_vault.cli", "list", "--json",
+            app_name="wrg_vault",
+        )
+        if not all_resp.get("ok"):
+            return {
+                "ok": False,
+                "error": (all_resp.get("stderr") or "vault list failed").strip(),
+            }
+        exp_resp = await _run_cli(
+            py_exe, "-m", "wrg_vault.cli", "expiring",
+            "--days", str(int(warn_days)), "--json",
+            app_name="wrg_vault",
+        )
+        if not exp_resp.get("ok"):
+            return {
+                "ok": False,
+                "error": (exp_resp.get("stderr") or "vault expiring failed").strip(),
+            }
+
+        entries = all_resp.get("output") or []
+        expiring = exp_resp.get("output") or []
+        if not isinstance(entries, list):
+            entries = []
+        if not isinstance(expiring, list):
+            expiring = []
+
+        from datetime import datetime, timezone, timedelta
+
+        stale_cutoff = datetime.now(timezone.utc) - timedelta(days=int(stale_days))
+
+        def _updated_at(e: dict) -> datetime | None:
+            raw = e.get("updated_at")
+            if not isinstance(raw, str):
+                return None
+            try:
+                dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+
+        stale = [
+            e["name"] for e in entries
+            if isinstance(e, dict) and e.get("name")
+            and (_updated_at(e) is None or _updated_at(e) < stale_cutoff)
+        ]
+
+        return {
+            "ok": True,
+            "total": len(entries),
+            "expiring_soon": [
+                e["name"] for e in expiring
+                if isinstance(e, dict) and e.get("name")
+            ],
+            "stale": stale,
+            "details": {e["name"]: e for e in entries
+                        if isinstance(e, dict) and e.get("name")},
+            "warn_days": int(warn_days),
+            "stale_days": int(stale_days),
+        }
+
+    # ── wrg_scheduler ─────────────────────────────────────────────
+
+    @mcp.tool()
+    async def scheduler_task_list() -> dict[str, Any]:
+        """List all registered scheduler tasks (hardcoded + YAML merged view).
+
+        Wraps ``wrg-schedule task-list`` and returns the raw output; the
+        underlying CLI prints a ``TASK | SOURCE | CMD`` table.
+        """
+        return await _run_cli(
+            py, "-m", "wrg_scheduler.cli", "task-list",
+            app_name="wrg_scheduler",
+        )
+
+    @mcp.tool()
+    async def scheduler_tick_dry_run() -> dict[str, Any]:
+        """Preview which scheduled tasks would run RIGHT NOW.
+
+        Read-only — calls ``wrg_scheduler.schedules.get_due_tasks`` via an
+        inline Python snippet so Claude can see the tick's blast radius
+        without executing anything.
+        """
+        snippet = (
+            "import json, sys; "
+            "from wrg_scheduler.schedules import get_due_tasks; "
+            "sys.stdout.write(json.dumps(get_due_tasks()))"
+        )
+        result = await _run_cli(
+            py, "-c", snippet,
+            app_name="wrg_scheduler",
+        )
+        if not result.get("ok"):
+            return result
+        due = result.get("output")
+        if not isinstance(due, list):
+            due = []
+        return {"ok": True, "due": due, "count": len(due)}
