@@ -3,7 +3,7 @@
   "name": "io.github.yakuphanycl/wrg-mcp-server",
   "title": "WinstonRedGuard MCP Server",
   "description": "WinstonRedGuard monorepo bridge for MCP agents: governance, pipelines, memory, OSINT tools.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "websiteUrl": "https://github.com/yakuphanycl/WinstonRedGuard/tree/main/apps/wrg_mcp_server",
   "repository": {
     "url": "https://github.com/yakuphanycl/WinstonRedGuard",
@@ -15,7 +15,7 @@
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "wrg-mcp-server",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "runtimeHint": "pipx",
       "transport": {
         "type": "stdio"

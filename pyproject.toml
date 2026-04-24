@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wrg_mcp_server"
-version = "1.0.0"
-description = "WRG MCP server — exposes WinstonRedGuard tools to Claude and AI agents"
+version = "1.0.1"
+description = "WRG MCP server - exposes WinstonRedGuard tools to Claude and AI agents"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
 license = "MIT"
