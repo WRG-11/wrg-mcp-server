@@ -44,6 +44,7 @@ pip install -e ".[dev]"      # pytest + pytest-asyncio
 | `pulse_check` | Invoke `wrg-pulse check` |
 | `memory_get`, `memory_set`, `memory_list`, `memory_search` | `wrg_memory` key-value access |
 | `research_history`, `research_report`, `research_scan`, `research_watch`, `research_scan_summary` | `research_motor` runs and artifacts |
+| `research_motor_healthz`, `research_motor_scan_create`, `research_motor_scan_get` | `research_motor` HTTP API v1 over localhost |
 | `vault_audit` | `wrg_vault` audit ledger inspection |
 | `scheduler_task_list`, `scheduler_tick_dry_run` | `wrg_scheduler` inspection |
 
@@ -55,6 +56,34 @@ pip install -e ".[dev]"      # pytest + pytest-asyncio
 | `pulseboard_health`, `pulseboard_list_repos`, `pulseboard_add_repo`, `pulseboard_delete_repo`, `pulseboard_get_pulse` | `pulseboard` dashboard (`WRG_PULSEBOARD_BASE_URL`) |
 
 Remote tools return `{"ok": false, "error": "httpx not installed — remote tools unavailable"}` when the `[remote]` extra is not installed.
+
+### research_motor HTTP API tools
+
+Start the research_motor API separately, then point the MCP server at it:
+
+```bash
+cd apps/research_motor
+pip install -e ".[api]"
+set RESEARCH_MOTOR_API_KEY=replace-me
+research-motor serve --host 127.0.0.1 --port 8080
+```
+
+Configure the MCP server environment:
+
+```bash
+set WRG_RM_API_BASE_URL=http://127.0.0.1:8080
+set WRG_RM_API_KEY=replace-me
+```
+
+Example MCP tool payloads:
+
+```json
+{"target": "example.com", "mode": "domain"}
+```
+
+```json
+{"scan_id": "sample-scan-abc123"}
+```
 
 ## Environment
 

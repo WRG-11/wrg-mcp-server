@@ -14,6 +14,7 @@ from mcp.server.fastmcp import FastMCP
 
 from wrg_mcp_server.config import AppConfig, ConfigError, ServiceConfig
 from wrg_mcp_server.local_tools import register_local_tools
+from wrg_mcp_server.tools.research_motor_api import register_research_motor_api_tools
 
 # httpx is optional — only needed for remote tools (site/pulseboard)
 try:
@@ -40,6 +41,7 @@ def create_mcp_server(
             "WRG MCP server — exposes the full WinstonRedGuard monorepo.\n"
             "Local tools: app_list, app_info, governance_run, research_*, "
             "pulse_check, memory_*, pipeline_*, release_check.\n"
+            "HTTP API tools: research_motor_scan_create, research_motor_scan_get, research_motor_healthz.\n"
             "Remote tools: site_* (company site APIs), pulseboard_* (GitHub health dashboard).\n"
             "Use connector_status to check which remote services are configured."
         ),
@@ -177,5 +179,6 @@ def create_mcp_server(
 
     # ── Local WRG tools ─────────────────────────────────────────
     register_local_tools(mcp)
+    register_research_motor_api_tools(mcp)
 
     return mcp
