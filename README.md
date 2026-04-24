@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.yakuphanycl/wrg-mcp-server -->
+
 # wrg_mcp_server
 
 MCP (Model Context Protocol) server exposing the WinstonRedGuard monorepo to Claude and other MCP-compatible AI agents. Built on `FastMCP` — registers tools from every active WRG app so an agent can inspect the repo, run pipelines, query memory, and call remote services without shelling out.
