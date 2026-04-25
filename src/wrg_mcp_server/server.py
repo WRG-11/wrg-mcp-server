@@ -127,7 +127,28 @@ def create_mcp_server(
 
     @mcp.tool()
     async def site_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Send a JSON POST payload to a WinstonRedGuard live site endpoint. Use when the user asks to 'post to site', 'create a site entry', 'submit to the site API', or wants to push data to the WRG public API. Use site_get for reads. Returns the site's response body (typically `{ok, data}`) plus HTTP status code."""
+        """Send a JSON POST payload to a WinstonRedGuard live site endpoint.
+
+        MUTATION (gated): site_post performs a network write against the
+        configured site service, so it requires ``WRG_SITE_MUTATIONS=1`` in
+        the server env. When the gate is unset (or any value other than
+        ``"1"``) the tool returns the envelope
+        ``{"ok": False, "error": "site mutations gated; set WRG_SITE_MUTATIONS=1"}``
+        without contacting the service. This mirrors the pipeline_run /
+        memory_set gating pattern (audit
+        ``docs/decisions/MCP_TOOL_AUDIT_2026_04_25.md`` §3.4 + §5).
+
+        Use when the user asks to "post to site", "create a site entry",
+        "submit to the site API", or wants to push data to the WRG public
+        API. Use site_get for reads. When the gate is unlocked the tool
+        returns the site's response body (typically ``{ok, data}``) plus
+        HTTP status code.
+        """
+        if os.environ.get("WRG_SITE_MUTATIONS") != "1":
+            return {
+                "ok": False,
+                "error": "site mutations gated; set WRG_SITE_MUTATIONS=1",
+            }
         service = require_service(cfg.site, "WRG_SITE_BASE_URL")
         return await request_service(
             service,
