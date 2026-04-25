@@ -13,7 +13,7 @@ DEFAULT_TIMEOUT_SECONDS = 30.0
 def register_research_motor_api_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     async def research_motor_healthz() -> dict[str, Any]:
-        """Check the research_motor HTTP API health endpoint."""
+        """Check the research_motor scan API for reachability. Use when the user asks 'is research_motor up?', 'check scan service', or before queuing scans via research_motor_scan_create on a possibly-unconfigured/down instance. Does NOT require an API key. Returns the API's `/v1/healthz` JSON (status, version) plus HTTP status code."""
         return await _request("GET", "/v1/healthz", require_api_key=False)
 
     @mcp.tool()

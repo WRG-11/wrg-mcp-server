@@ -90,6 +90,7 @@ def create_mcp_server(
     def connector_status() -> dict[str, Any]:
         """Show connector configuration status (without secrets)."""
         return {
+            "ok": True,
             "httpx_available": _HAS_HTTPX,
             "site_configured": cfg.site is not None,
             "site_base_url": cfg.site.base_url if cfg.site else None,
@@ -99,7 +100,7 @@ def create_mcp_server(
 
     @mcp.tool()
     async def site_health(path: str = "/health") -> dict[str, Any]:
-        """Check site health endpoint."""
+        """Check the WinstonRedGuard live site's health endpoint to verify the public-facing service is reachable. Use when the user asks 'is the site up?', 'check site status', 'site healthcheck', or before composing a site_post call that depends on the live API. Returns the site's health JSON plus HTTP status code."""
         service = require_service(cfg.site, "WRG_SITE_BASE_URL")
         return await request_service(service, method="GET", path=path)
 
@@ -119,7 +120,7 @@ def create_mcp_server(
 
     @mcp.tool()
     async def site_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Call a site POST endpoint."""
+        """Send a JSON POST payload to a WinstonRedGuard live site endpoint. Use when the user asks to 'post to site', 'create a site entry', 'submit to the site API', or wants to push data to the WRG public API. Use site_get for reads. Returns the site's response body (typically `{ok, data}`) plus HTTP status code."""
         service = require_service(cfg.site, "WRG_SITE_BASE_URL")
         return await request_service(
             service,
@@ -130,7 +131,7 @@ def create_mcp_server(
 
     @mcp.tool()
     async def pulseboard_health(path: str = "/health") -> dict[str, Any]:
-        """Check PulseBoard health endpoint."""
+        """Check the PulseBoard repo-health dashboard service for reachability. Use when the user asks 'is pulseboard up?', 'pulseboard status', or before calling pulseboard_list_repos / pulseboard_add_repo on a possibly-unreachable instance. NOTE: PulseBoard is currently DORMANT per PR #252 — this endpoint may not be reachable. Returns health JSON plus HTTP status code."""
         service = require_service(cfg.pulseboard, "WRG_PULSEBOARD_BASE_URL")
         return await request_service(service, method="GET", path=path)
 
