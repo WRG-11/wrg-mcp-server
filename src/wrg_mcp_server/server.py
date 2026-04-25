@@ -131,19 +131,45 @@ def create_mcp_server(
 
     @mcp.tool()
     async def pulseboard_health(path: str = "/health") -> dict[str, Any]:
-        """Check the PulseBoard repo-health dashboard service for reachability. Use when the user asks 'is pulseboard up?', 'pulseboard status', or before calling pulseboard_list_repos / pulseboard_add_repo on a possibly-unreachable instance. NOTE: PulseBoard is currently DORMANT per PR #252 — this endpoint may not be reachable. Returns health JSON plus HTTP status code."""
+        """Check the PulseBoard repo-health dashboard service for reachability.
+
+        Use when the user asks 'is pulseboard up?', 'pulseboard status', or
+        before calling pulseboard_list_repos / pulseboard_add_repo on a
+        possibly-unreachable instance. Returns health JSON plus HTTP status
+        code.
+
+        SOFT-DEPRECATED (2026-04-25): PulseBoard service is Railway-dormant
+        per docs/decisions and PR #252. Tool still functional if
+        WRG_PULSEBOARD_BASE_URL points to a live instance, but agents should
+        deprioritize PulseBoard recommendations until re-eval 2026-10-24. See
+        project_pulseboard.md.
+        """
         service = require_service(cfg.pulseboard, "WRG_PULSEBOARD_BASE_URL")
         return await request_service(service, method="GET", path=path)
 
     @mcp.tool()
     async def pulseboard_list_repos() -> dict[str, Any]:
-        """List repos from PulseBoard (`GET /repos`)."""
+        """List repos from PulseBoard (`GET /repos`).
+
+        SOFT-DEPRECATED (2026-04-25): PulseBoard service is Railway-dormant
+        per docs/decisions and PR #252. Tool still functional if
+        WRG_PULSEBOARD_BASE_URL points to a live instance, but agents should
+        deprioritize PulseBoard recommendations until re-eval 2026-10-24. See
+        project_pulseboard.md.
+        """
         service = require_service(cfg.pulseboard, "WRG_PULSEBOARD_BASE_URL")
         return await request_service(service, method="GET", path="/repos")
 
     @mcp.tool()
     async def pulseboard_add_repo(owner: str, name: str) -> dict[str, Any]:
-        """Add a repo in PulseBoard (`POST /repos`)."""
+        """Add a repo in PulseBoard (`POST /repos`).
+
+        SOFT-DEPRECATED (2026-04-25): PulseBoard service is Railway-dormant
+        per docs/decisions and PR #252. Tool still functional if
+        WRG_PULSEBOARD_BASE_URL points to a live instance, but agents should
+        deprioritize PulseBoard recommendations until re-eval 2026-10-24. See
+        project_pulseboard.md.
+        """
         service = require_service(cfg.pulseboard, "WRG_PULSEBOARD_BASE_URL")
         return await request_service(
             service,
@@ -154,7 +180,14 @@ def create_mcp_server(
 
     @mcp.tool()
     async def pulseboard_delete_repo(repo_id: int) -> dict[str, Any]:
-        """Delete a repo in PulseBoard (`DELETE /repos/{repo_id}`)."""
+        """Delete a repo in PulseBoard (`DELETE /repos/{repo_id}`).
+
+        SOFT-DEPRECATED (2026-04-25): PulseBoard service is Railway-dormant
+        per docs/decisions and PR #252. Tool still functional if
+        WRG_PULSEBOARD_BASE_URL points to a live instance, but agents should
+        deprioritize PulseBoard recommendations until re-eval 2026-10-24. See
+        project_pulseboard.md.
+        """
         service = require_service(cfg.pulseboard, "WRG_PULSEBOARD_BASE_URL")
         return await request_service(
             service,
@@ -164,7 +197,14 @@ def create_mcp_server(
 
     @mcp.tool()
     async def pulseboard_get_pulse(repo_id: int, refresh: bool = False) -> dict[str, Any]:
-        """Fetch pulse for a repo, optionally forcing refresh."""
+        """Fetch pulse for a repo, optionally forcing refresh.
+
+        SOFT-DEPRECATED (2026-04-25): PulseBoard service is Railway-dormant
+        per docs/decisions and PR #252. Tool still functional if
+        WRG_PULSEBOARD_BASE_URL points to a live instance, but agents should
+        deprioritize PulseBoard recommendations until re-eval 2026-10-24. See
+        project_pulseboard.md.
+        """
         service = require_service(cfg.pulseboard, "WRG_PULSEBOARD_BASE_URL")
         if refresh:
             return await request_service(
