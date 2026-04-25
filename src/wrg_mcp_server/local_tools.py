@@ -278,7 +278,9 @@ def register_local_tools(mcp: FastMCP) -> None:
         if app and result.get("ok") and isinstance(result.get("output"), str):
             # Filter output for the specific app
             lines = result["output"].splitlines()
-            filtered = [l for l in lines if app in l or l.startswith("governance")]
+            filtered = [
+                line for line in lines if app in line or line.startswith("governance")
+            ]
             result["output"] = "\n".join(filtered) if filtered else result["output"]
         return result
 
@@ -303,13 +305,25 @@ def register_local_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def pipeline_list() -> dict[str, Any]:
-        """List all registered WRG pipelines."""
+        """List registered wrg_pipeline DAG names available in this WRG checkout.
+
+        Use when the user asks "what pipelines exist?", "show pipeline
+        registry", or before calling pipeline_show / pipeline_run and you need
+        the exact pipeline name. Returns the standard _run_cli envelope:
+        {ok, exit_code, output, stderr?}.
+        """
         return await _run_cli(py, "-m", "wrg_pipeline.cli", "list",
                               app_name="wrg_pipeline")
 
     @mcp.tool()
     async def pipeline_show(name: str) -> dict[str, Any]:
-        """Show DAG structure for a WRG pipeline."""
+        """Show the wrg_pipeline DAG structure for one named pipeline.
+
+        Use when the user asks "what does this pipeline do?", "show pipeline
+        steps", or before pipeline_run to inspect task order and dependencies.
+        Use pipeline_list first if the pipeline name is unknown. Returns the
+        standard _run_cli envelope: {ok, exit_code, output, stderr?}.
+        """
         return await _run_cli(py, "-m", "wrg_pipeline.cli", "show", name,
                               app_name="wrg_pipeline")
 
@@ -351,7 +365,14 @@ def register_local_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def memory_get(key: str) -> dict[str, Any]:
-        """Get a value from WRG cross-app memory store."""
+        """Read one key from the WRG cross-app memory store.
+
+        Use when the user asks "what is stored for this key?", "retrieve WRG
+        memory", or when a workflow needs a previously persisted value before
+        deciding the next action. Use memory_list or memory_search when the
+        exact key is unknown. Returns the standard _run_cli envelope:
+        {ok, exit_code, output, stderr?}.
+        """
         return await _run_cli(py, "-m", "wrg_memory.cli", "get", key,
                               app_name="wrg_memory")
 
@@ -381,7 +402,14 @@ def register_local_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     async def memory_list(app: str = "", category: str = "",
                           prefix: str = "") -> dict[str, Any]:
-        """List entries in WRG memory store, with optional filters."""
+        """List WRG cross-app memory store entries with optional filters.
+
+        Use when the user asks "show memory entries", "list memory for this
+        app/category", or when you need to discover keys before memory_get.
+        Filter by app, category, or key prefix; use memory_search for keyword
+        search across values. Returns the standard _run_cli envelope:
+        {ok, exit_code, output, stderr?}.
+        """
         args = [py, "-m", "wrg_memory.cli", "list"]
         if app:
             args.extend(["--app", app])
@@ -409,13 +437,27 @@ def register_local_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def research_history() -> dict[str, Any]:
-        """List recent research_motor runs (JSON)."""
+        """List recent research_motor local CLI runs as JSON history.
+
+        Use when the user asks "what research scans ran recently?", "show
+        research history", or before research_report when you need a run_id.
+        This is the local CLI history surface; use research_motor_scan_get for
+        HTTP API scan results. Returns the standard _run_cli envelope:
+        {ok, exit_code, output, stderr?}.
+        """
         return await _run_cli(py, "-m", "research_motor.cli", "history", "--json",
                               app_name="research_motor")
 
     @mcp.tool()
     async def research_report(run_id: str) -> dict[str, Any]:
-        """Get the report for a specific research_motor run (JSON)."""
+        """Fetch one research_motor local CLI run report as JSON.
+
+        Use when the user asks "show this research report", "open run
+        details", or after research_history returns a run_id that needs
+        inspection. This reads stored local research_motor output; use
+        research_scan to create a new local scan. Returns the standard
+        _run_cli envelope: {ok, exit_code, output, stderr?}.
+        """
         return await _run_cli(py, "-m", "research_motor.cli", "report",
                               "--run", run_id, "--json",
                               app_name="research_motor")

@@ -109,7 +109,14 @@ def create_mcp_server(
         path: str = "/",
         query: dict[str, str] | None = None,
     ) -> dict[str, Any]:
-        """Call a site GET endpoint with optional query params."""
+        """Read a WinstonRedGuard live site API endpoint with optional query params.
+
+        Use when the user asks "fetch from site", "read the site API", "check
+        this public endpoint", or before site_post when you need current
+        server state. Use site_health for reachability checks and site_post for
+        writes. Returns the site's response body plus HTTP metadata in the
+        parse_response shape: {ok, status_code, url, content_type, body}.
+        """
         service = require_service(cfg.site, "WRG_SITE_BASE_URL")
         return await request_service(
             service,
