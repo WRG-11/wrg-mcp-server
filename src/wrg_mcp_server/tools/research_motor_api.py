@@ -13,12 +13,12 @@ DEFAULT_TIMEOUT_SECONDS = 30.0
 def register_research_motor_api_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     async def research_motor_healthz() -> dict[str, Any]:
-        """Check the research_motor scan API for reachability. Use when the user asks 'is research_motor up?', 'check scan service', or before queuing scans via research_motor_scan_create on a possibly-unconfigured/down instance. Does NOT require an API key. Returns the API's `/v1/healthz` JSON (status, version) plus HTTP status code."""
+        """Check the research_motor scan API for reachability. Use when the user asks 'is research_motor up?', 'check scan service', or before queuing scans via research_motor_scan_create on a possibly-unconfigured/down instance. Does NOT require an API key. Returns {ok, status_code, body} where body is the API's `/v1/healthz` JSON (status, version)."""
         return await _request("GET", "/v1/healthz", require_api_key=False)
 
     @mcp.tool()
     async def research_motor_scan_create(target: str, mode: str) -> dict[str, Any]:
-        """Create a research_motor HTTP API scan and return its scan_id."""
+        """Create a research_motor HTTP API scan. Returns {ok, status_code, body} where body contains scan_id on success, or {ok: False, error} if WRG_RM_API_KEY is unset / httpx is missing / the API returns non-2xx."""
         return await _request(
             "POST",
             "/v1/scan",
@@ -28,7 +28,7 @@ def register_research_motor_api_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     async def research_motor_scan_get(scan_id: str) -> dict[str, Any]:
-        """Fetch a research_motor HTTP API scan result, including scoring."""
+        """Fetch a research_motor HTTP API scan result, including scoring. Returns {ok, status_code, body} where body contains the scan result + scoring on success, or {ok: False, error} on failure."""
         return await _request("GET", f"/v1/scan/{scan_id}", require_api_key=True)
 
 
@@ -41,12 +41,12 @@ async def _request(
 ) -> dict[str, Any]:
     try:
         import httpx
-    except ImportError as exc:
-        raise RuntimeError("httpx is required for research_motor HTTP API tools") from exc
+    except ImportError:
+        return {"ok": False, "error": "httpx is required for research_motor HTTP API tools"}
 
     api_key = os.environ.get("WRG_RM_API_KEY", "")
     if require_api_key and not api_key:
-        raise RuntimeError("WRG_RM_API_KEY is required for research_motor API scan tools")
+        return {"ok": False, "error": "WRG_RM_API_KEY is required for research_motor API scan tools"}
 
     headers = {"X-API-Key": api_key} if api_key else {}
     timeout = httpx.Timeout(_timeout_seconds())
@@ -57,10 +57,15 @@ async def _request(
             headers=headers,
             json=payload,
         )
-    if response.is_success:
-        return _response_body(response)
     body = _response_body(response)
-    raise RuntimeError(f"research_motor API {method} {path} failed: HTTP {response.status_code}: {body!r}")
+    if response.is_success:
+        return {"ok": True, "status_code": response.status_code, "body": body}
+    return {
+        "ok": False,
+        "status_code": response.status_code,
+        "body": body,
+        "error": f"research_motor API {method} {path} failed: HTTP {response.status_code}",
+    }
 
 
 def _url(path: str) -> str:

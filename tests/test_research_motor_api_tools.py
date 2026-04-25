@@ -64,17 +64,26 @@ async def test_research_motor_api_tools_roundtrip(monkeypatch: pytest.MonkeyPatc
     try:
         health = await tools["research_motor_healthz"].fn()
         created = await tools["research_motor_scan_create"].fn(target="example.com", mode="domain")
-        result = await tools["research_motor_scan_get"].fn(scan_id=created["scan_id"])
+        result = await tools["research_motor_scan_get"].fn(scan_id=created["body"]["scan_id"])
     finally:
         service.close()
 
-    assert health == {"ok": True, "service": "research_motor", "version": "v1"}
-    assert created["scan_id"].startswith("api_")
-    assert created["status"] == "scored"
-    assert result["scan_id"] == created["scan_id"]
-    assert result["target"] == "example.com"
-    assert result["mode"] == "domain"
-    assert result["scoring"]["candidate_count"] >= 1
+    assert health["ok"] is True
+    assert 200 <= health["status_code"] < 300
+    assert health["body"] == {"ok": True, "service": "research_motor", "version": "v1"}
+
+    assert created["ok"] is True
+    assert 200 <= created["status_code"] < 300
+    assert list(created.keys())[0] == "ok"
+    assert created["body"]["scan_id"].startswith("api_")
+    assert created["body"]["status"] == "scored"
+
+    assert result["ok"] is True
+    assert 200 <= result["status_code"] < 300
+    assert result["body"]["scan_id"] == created["body"]["scan_id"]
+    assert result["body"]["target"] == "example.com"
+    assert result["body"]["mode"] == "domain"
+    assert result["body"]["scoring"]["candidate_count"] >= 1
 
 
 @pytest.mark.asyncio
@@ -82,8 +91,58 @@ async def test_research_motor_scan_requires_api_key(monkeypatch: pytest.MonkeyPa
     monkeypatch.delenv("WRG_RM_API_KEY", raising=False)
     tools = _get_tools()
 
-    with pytest.raises(RuntimeError, match="WRG_RM_API_KEY"):
-        await tools["research_motor_scan_create"].fn(target="alice", mode="username")
+    result = await tools["research_motor_scan_create"].fn(target="alice", mode="username")
+
+    assert result == {
+        "ok": False,
+        "error": "WRG_RM_API_KEY is required for research_motor API scan tools",
+    }
+    assert list(result.keys())[0] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_research_motor_scan_get_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("WRG_RM_API_KEY", raising=False)
+    tools = _get_tools()
+
+    result = await tools["research_motor_scan_get"].fn(scan_id="api_abc")
+
+    assert result == {
+        "ok": False,
+        "error": "WRG_RM_API_KEY is required for research_motor API scan tools",
+    }
+
+
+@pytest.mark.asyncio
+async def test_research_motor_request_returns_envelope_on_http_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-2xx HTTP responses surface as {ok: False, status_code, body, error} — no raise."""
+    service = _service()
+    app = create_app(api_key="secret", scan_service=service)
+
+    def _client(*, timeout):
+        return AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+            timeout=timeout,
+        )
+
+    monkeypatch.setenv("WRG_RM_API_BASE_URL", "http://testserver")
+    monkeypatch.setenv("WRG_RM_API_KEY", "secret")
+    monkeypatch.setattr(rm_tools, "_make_client", _client)
+    tools = _get_tools()
+
+    try:
+        result = await tools["research_motor_scan_get"].fn(scan_id="api_does_not_exist")
+    finally:
+        service.close()
+
+    assert result["ok"] is False
+    assert result["status_code"] == 404
+    assert "error" in result
+    assert "HTTP 404" in result["error"]
+    assert list(result.keys())[0] == "ok"
 
 
 def test_research_motor_api_tools_registered() -> None:
