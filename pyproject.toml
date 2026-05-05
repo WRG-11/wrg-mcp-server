@@ -59,7 +59,9 @@ where = ["src"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[tool.coverage.run]
+source = ["src/wrg_mcp_server"]
+
 [tool.coverage.report]
-# Baseline no-regression floor. Apps above this today (measured 2026-04-21)
-# shouldn't drop below it; raise individually once they stabilise higher.
-fail_under = 60
+# 2026-04-21: baseline 60. 2026-05-05: raised 60→70. Current ~83%.
+fail_under = 70
