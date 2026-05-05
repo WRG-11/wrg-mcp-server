@@ -16,6 +16,7 @@ from wrg_mcp_server.config import AppConfig, ConfigError, ServiceConfig
 from wrg_mcp_server.local_tools import register_local_tools
 from wrg_mcp_server.tools.arastirma_ussu import register_arastirma_ussu_tools
 from wrg_mcp_server.tools.research_motor_api import register_research_motor_api_tools
+from wrg_mcp_server.tools.trading_agents import register_trading_agents_tools
 
 # httpx is optional — only needed for remote tools (site/pulseboard)
 try:
@@ -44,6 +45,7 @@ def create_mcp_server(
             "pulse_check, memory_*, pipeline_*, release_check.\n"
             "HTTP API tools: research_motor_scan_create, research_motor_scan_get, research_motor_healthz.\n"
             "Arastirma Ussu tools: arastirma_ask, arastirma_doc_search, arastirma_web_search, arastirma_memory_search.\n"
+            "Trading tools: trading_analyze (full multi-agent), trading_quick_signal (fast RSI/price).\n"
             "Remote tools: site_* (company site APIs), pulseboard_* (GitHub health dashboard).\n"
             "Use connector_status to check which remote services are configured."
         ),
@@ -252,5 +254,6 @@ def create_mcp_server(
     register_local_tools(mcp)
     register_research_motor_api_tools(mcp)
     register_arastirma_ussu_tools(mcp)
+    register_trading_agents_tools(mcp)
 
     return mcp
