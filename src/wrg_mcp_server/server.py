@@ -17,6 +17,8 @@ from wrg_mcp_server.local_tools import register_local_tools
 from wrg_mcp_server.tools.arastirma_ussu import register_arastirma_ussu_tools
 from wrg_mcp_server.tools.research_motor_api import register_research_motor_api_tools
 from wrg_mcp_server.tools.maigret_osint import register_maigret_tools
+from wrg_mcp_server.tools.polymarket import register_polymarket_tools
+from wrg_mcp_server.tools.research_platform import register_research_platform_tools
 from wrg_mcp_server.tools.trading_agents import register_trading_agents_tools
 
 # httpx is optional — only needed for remote tools (site/pulseboard)
@@ -257,6 +259,8 @@ def create_mcp_server(
     register_research_motor_api_tools(mcp)
     register_arastirma_ussu_tools(mcp)
     register_trading_agents_tools(mcp)
+    register_polymarket_tools(mcp)
     register_maigret_tools(mcp)
+    register_research_platform_tools(mcp)
 
     return mcp
