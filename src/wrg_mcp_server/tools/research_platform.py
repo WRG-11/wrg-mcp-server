@@ -37,8 +37,8 @@ def register_research_platform_tools(mcp: FastMCP) -> None:
         Learns from patterns via instinct (when available).
         """
         start = time.time()
-        results = {}
-        errors = []
+        results: dict[str, Any] = {}
+        errors: list[str] = []
 
         # Determine mode
         if mode == "auto":
