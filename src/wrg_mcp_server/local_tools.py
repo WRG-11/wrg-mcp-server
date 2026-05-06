@@ -153,7 +153,7 @@ def _read_registry() -> list[dict[str, Any]]:
     if not reg_path.exists():
         return []
     data = json.loads(reg_path.read_text(encoding="utf-8"))
-    return data.get("apps", [])
+    return list(data.get("apps", []))
 
 
 def _read_pyproject(app_name: str) -> dict[str, Any]:
@@ -558,7 +558,7 @@ def register_local_tools(mcp: FastMCP) -> None:
 
         stale_cutoff = datetime.now(timezone.utc) - timedelta(days=int(stale_days))
 
-        def _updated_at(e: dict) -> datetime | None:
+        def _updated_at(e: dict[str, Any]) -> datetime | None:
             raw = e.get("updated_at")
             if not isinstance(raw, str):
                 return None
@@ -573,7 +573,7 @@ def register_local_tools(mcp: FastMCP) -> None:
         stale = [
             e["name"] for e in entries
             if isinstance(e, dict) and e.get("name")
-            and (_updated_at(e) is None or _updated_at(e) < stale_cutoff)
+            and ((ua := _updated_at(e)) is None or ua < stale_cutoff)
         ]
 
         return {

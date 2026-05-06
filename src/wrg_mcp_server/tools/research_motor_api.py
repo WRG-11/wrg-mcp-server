@@ -87,7 +87,8 @@ def _timeout_seconds() -> float:
 def _response_body(response: Any) -> dict[str, Any]:
     content_type = response.headers.get("content-type", "")
     if "application/json" in content_type.lower():
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
     return {"text": response.text}
 
 

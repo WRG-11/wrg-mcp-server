@@ -99,7 +99,7 @@ def register_research_platform_tools(mcp: FastMCP) -> None:
 
         # 4. Pattern learning via instinct
         try:
-            from instinct.store import MemoryStore
+            from instinct.store import MemoryStore  # type: ignore[attr-defined]
             store = MemoryStore()
             # Check if we've seen similar questions before
             similar = store.search(question, limit=3)
@@ -156,7 +156,7 @@ def _detect_modes(question: str, target: str) -> list[str]:
     return modes
 
 
-def _build_research_summary(question: str, results: dict, engines: list[str]) -> str:
+def _build_research_summary(question: str, results: dict[str, Any], engines: list[str]) -> str:
     if not engines:
         return f"No research engines available for: {question}"
 

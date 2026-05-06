@@ -104,7 +104,7 @@ def register_maigret_tools(mcp: FastMCP) -> None:
             }
 
 
-def _build_summary(username: str, accounts: list[dict]) -> str:
+def _build_summary(username: str, accounts: list[dict[str, Any]]) -> str:
     if not accounts:
         return f"No accounts found for username '{username}'."
     sites = ", ".join(a["site"] for a in accounts[:10])
