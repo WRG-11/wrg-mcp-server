@@ -13,7 +13,6 @@ from wrg_mcp_server.config import (
     _parse_headers_json,
 )
 
-
 # ─── _parse_bool ─────────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("raw", ["1", "true", "True", "YES", "on"])

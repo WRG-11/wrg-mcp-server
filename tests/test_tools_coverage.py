@@ -7,10 +7,9 @@ from __future__ import annotations
 
 import json
 import sys
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # polymarket helpers
@@ -262,8 +261,8 @@ class TestTradingAgentsTool:
 
     @pytest.mark.asyncio
     async def test_trading_quick_signal_success(self):
-        import pandas as pd
         import numpy as np
+        import pandas as pd
         tools = self._register()
         dates = pd.date_range("2026-01-01", periods=20)
         hist = pd.DataFrame({

@@ -16,7 +16,6 @@ import pytest
 
 from wrg_mcp_server import local_tools as lt
 
-
 # ─── fake CLI harness ────────────────────────────────────────────────────
 
 

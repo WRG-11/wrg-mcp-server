@@ -32,8 +32,8 @@ def register_trading_agents_tools(mcp: FastMCP) -> None:
         Slow (~30-120s). Requires LLM API key or Ollama running locally.
         """
         try:
-            from tradingagents.graph.trading_graph import TradingAgentsGraph
             from tradingagents.default_config import DEFAULT_CONFIG
+            from tradingagents.graph.trading_graph import TradingAgentsGraph
 
             config = DEFAULT_CONFIG.copy()
             config["llm_provider"] = provider

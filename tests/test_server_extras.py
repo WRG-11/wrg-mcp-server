@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
-from wrg_mcp_server.config import AppConfig, ConfigError
 from wrg_mcp_server import server as srv
+from wrg_mcp_server.config import AppConfig, ConfigError
 
 
 def _site_post_tool(monkeypatch: pytest.MonkeyPatch) -> Any:

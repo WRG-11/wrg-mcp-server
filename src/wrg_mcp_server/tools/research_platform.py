@@ -49,8 +49,8 @@ def register_research_platform_tools(mcp: FastMCP) -> None:
         # 1. OSINT via research_motor
         if "osint" in modes and target:
             try:
-                from research_motor.core.normalize import normalize_sources
                 from research_motor.core.extract import extract_candidates
+                from research_motor.core.normalize import normalize_sources
                 from research_motor.core.score import score_candidates
 
                 raw = [{

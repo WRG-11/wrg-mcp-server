@@ -63,10 +63,10 @@ def register_arastirma_ussu_tools(mcp: FastMCP) -> None:
         Slow (~10-60s depending on complexity). Requires Ollama running.
         For simple searches prefer arastirma_doc_search or arastirma_web_search."""
         try:
-            from langchain_core.messages import HumanMessage, SystemMessage
             from arastirma_ussu.agent.graph import build_graph
             from arastirma_ussu.agent.prompts import build_system_prompt
             from arastirma_ussu.agent.tools import build_tool_registry
+            from langchain_core.messages import HumanMessage, SystemMessage
 
             registry = build_tool_registry()
             system_prompt = build_system_prompt(registry)

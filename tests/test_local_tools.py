@@ -18,7 +18,6 @@ from wrg_mcp_server.local_tools import (
     register_local_tools,
 )
 
-
 # ── _run_cli unit tests ──────────────────────────────────────────
 
 

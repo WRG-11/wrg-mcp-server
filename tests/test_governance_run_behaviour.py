@@ -21,7 +21,6 @@ import pytest
 
 from wrg_mcp_server import local_tools as lt
 
-
 # ── shared harness (mirrors test_new_tools.py:23-55) ─────────────────
 
 

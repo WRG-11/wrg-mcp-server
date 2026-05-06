@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Any
 
 import anyio
-
 from mcp.server.fastmcp import FastMCP
+
 
 # Repo root: prefer WRG_REPO_ROOT env var, then walk up from this file.
 # When installed from wheel (e.g. release gate), parents[4] won't be the
@@ -554,7 +554,7 @@ def register_local_tools(mcp: FastMCP) -> None:
         if not isinstance(expiring, list):
             expiring = []
 
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
 
         stale_cutoff = datetime.now(timezone.utc) - timedelta(days=int(stale_days))
 

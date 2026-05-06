@@ -12,7 +12,6 @@ from wrg_mcp_server.http_utils import (
     parse_response,
 )
 
-
 # ─── normalize_relative_path ─────────────────────────────────────────────────
 
 def test_normalize_empty_returns_root() -> None:
