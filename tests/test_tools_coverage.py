@@ -216,22 +216,8 @@ class TestPolymarketTool:
 
 class TestTradingAgentsTool:
     @pytest.fixture(autouse=True)
-    def _fake_tradingagents(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Inject fake tradingagents + yfinance module hierarchy so patch() can resolve paths."""
-        import types
-        _stubs: dict[str, dict[str, object]] = {
-            "tradingagents": {},
-            "tradingagents.default_config": {"DEFAULT_CONFIG": {}},
-            "tradingagents.graph": {},
-            "tradingagents.graph.trading_graph": {"TradingAgentsGraph": MagicMock},
-            "yfinance": {"Ticker": MagicMock},
-        }
-        for mod_path, attrs in _stubs.items():
-            if mod_path not in sys.modules:
-                fake = types.ModuleType(mod_path)
-                for k, v in attrs.items():
-                    setattr(fake, k, v)
-                monkeypatch.setitem(sys.modules, mod_path, fake)
+    def _setup(self, fake_tradingagents: None) -> None:
+        pass
 
     def _register(self):
         from wrg_mcp_server.tools.trading_agents import register_trading_agents_tools
@@ -315,28 +301,8 @@ class TestTradingAgentsTool:
 
 class TestArastirmaUssuTool:
     @pytest.fixture(autouse=True)
-    def _fake_arastirma_ussu(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Inject fake arastirma_ussu module hierarchy so patch() can resolve paths."""
-        import types
-        _stubs: dict[str, dict[str, object]] = {
-            "arastirma_ussu": {},
-            "arastirma_ussu.ingest": {},
-            "arastirma_ussu.ingest.tool": {"doc_search": MagicMock},
-            "arastirma_ussu.memory": {},
-            "arastirma_ussu.memory.tool": {"memory_search": MagicMock},
-            "arastirma_ussu.agent": {},
-            "arastirma_ussu.agent.tools": {"web_search": lambda *a, **kw: None, "build_tool_registry": lambda *a, **kw: None},
-            "arastirma_ussu.agent.graph": {"build_graph": lambda *a, **kw: None},
-            "arastirma_ussu.agent.prompts": {"build_system_prompt": lambda *a, **kw: ""},
-            "langchain_core": {},
-            "langchain_core.messages": {"HumanMessage": MagicMock, "SystemMessage": MagicMock},
-        }
-        for mod_path, attrs in _stubs.items():
-            if mod_path not in sys.modules:
-                fake = types.ModuleType(mod_path)
-                for k, v in attrs.items():
-                    setattr(fake, k, v)
-                monkeypatch.setitem(sys.modules, mod_path, fake)
+    def _setup(self, fake_arastirma_ussu: None) -> None:
+        pass
 
     def _register(self):
         from wrg_mcp_server.tools.arastirma_ussu import register_arastirma_ussu_tools
@@ -429,12 +395,8 @@ class TestArastirmaUssuTool:
 
 class TestMaigretOsint:
     @pytest.fixture(autouse=True)
-    def _fake_maigret_installed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Inject a fake 'maigret' module so the ``import maigret`` early-check
-        inside ``maigret_search`` passes even when the real CLI isn't installed."""
-        import types
-        fake = types.ModuleType("maigret")
-        monkeypatch.setitem(sys.modules, "maigret", fake)
+    def _setup(self, fake_maigret: None) -> None:
+        pass
 
     def test_build_summary_no_accounts(self):
         from wrg_mcp_server.tools.maigret_osint import _build_summary

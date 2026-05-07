@@ -1065,22 +1065,8 @@ class TestResearchMotorApiCoverage:
 class TestTradingAgentsCoverage:
 
     @pytest.fixture(autouse=True)
-    def _fake_tradingagents(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Inject fake tradingagents + yfinance module hierarchy so patch() can resolve paths."""
-        from unittest.mock import MagicMock
-        _stubs: dict[str, dict[str, object]] = {
-            "tradingagents": {},
-            "tradingagents.default_config": {"DEFAULT_CONFIG": {}},
-            "tradingagents.graph": {},
-            "tradingagents.graph.trading_graph": {"TradingAgentsGraph": MagicMock},
-            "yfinance": {"Ticker": MagicMock},
-        }
-        for mod_path, attrs in _stubs.items():
-            if mod_path not in sys.modules:
-                fake = types.ModuleType(mod_path)
-                for k, v in attrs.items():
-                    setattr(fake, k, v)
-                monkeypatch.setitem(sys.modules, mod_path, fake)
+    def _setup(self, fake_tradingagents: None) -> None:
+        pass
 
     def _register(self):
         return _register_tools("trading_agents", "register_trading_agents_tools")
@@ -1242,28 +1228,8 @@ class TestHttpUtilsCoverage:
 class TestArastirmaUssuCoverage:
 
     @pytest.fixture(autouse=True)
-    def _fake_arastirma_ussu(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Inject fake arastirma_ussu module hierarchy so patch() can resolve paths."""
-        from unittest.mock import MagicMock
-        _stubs: dict[str, dict[str, object]] = {
-            "arastirma_ussu": {},
-            "arastirma_ussu.ingest": {},
-            "arastirma_ussu.ingest.tool": {"doc_search": MagicMock},
-            "arastirma_ussu.memory": {},
-            "arastirma_ussu.memory.tool": {"memory_search": MagicMock},
-            "arastirma_ussu.agent": {},
-            "arastirma_ussu.agent.tools": {"web_search": MagicMock, "build_tool_registry": MagicMock},
-            "arastirma_ussu.agent.graph": {"build_graph": MagicMock},
-            "arastirma_ussu.agent.prompts": {"build_system_prompt": MagicMock},
-            "langchain_core": {},
-            "langchain_core.messages": {"HumanMessage": MagicMock, "SystemMessage": MagicMock},
-        }
-        for mod_path, attrs in _stubs.items():
-            if mod_path not in sys.modules:
-                fake = types.ModuleType(mod_path)
-                for k, v in attrs.items():
-                    setattr(fake, k, v)
-                monkeypatch.setitem(sys.modules, mod_path, fake)
+    def _setup(self, fake_arastirma_ussu: None) -> None:
+        pass
 
     def _register(self):
         return _register_tools("arastirma_ussu", "register_arastirma_ussu_tools")
