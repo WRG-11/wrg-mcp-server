@@ -1088,8 +1088,8 @@ class TestTradingAgentsCoverage:
     @pytest.mark.asyncio
     async def test_trading_quick_signal_oversold(self):
         """Line 112: RSI < 30 → OVERSOLD signal."""
-        import numpy as np
-        import pandas as pd
+        np = pytest.importorskip("numpy")
+        pd = pytest.importorskip("pandas")
         tools = self._register()
         dates = pd.date_range("2026-01-01", periods=20)
         # Create a declining price series to get low RSI
@@ -1110,8 +1110,8 @@ class TestTradingAgentsCoverage:
     @pytest.mark.asyncio
     async def test_trading_quick_signal_overbought(self):
         """Line 116: RSI > 70 → OVERBOUGHT signal."""
-        import numpy as np
-        import pandas as pd
+        np = pytest.importorskip("numpy")
+        pd = pytest.importorskip("pandas")
         tools = self._register()
         dates = pd.date_range("2026-01-01", periods=20)
         # Create a rising price series to get high RSI

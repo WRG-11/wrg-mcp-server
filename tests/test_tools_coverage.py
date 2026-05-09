@@ -265,8 +265,8 @@ class TestTradingAgentsTool:
 
     @pytest.mark.asyncio
     async def test_trading_quick_signal_success(self):
-        import numpy as np
-        import pandas as pd
+        np = pytest.importorskip("numpy")
+        pd = pytest.importorskip("pandas")
         tools = self._register()
         dates = pd.date_range("2026-01-01", periods=20)
         hist = pd.DataFrame({
@@ -284,7 +284,7 @@ class TestTradingAgentsTool:
 
     @pytest.mark.asyncio
     async def test_trading_quick_signal_empty(self):
-        import pandas as pd
+        pd = pytest.importorskip("pandas")
         tools = self._register()
         mock_ticker = MagicMock()
         mock_ticker.history.return_value = pd.DataFrame()

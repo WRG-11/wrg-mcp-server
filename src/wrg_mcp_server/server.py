@@ -17,8 +17,10 @@ from wrg_mcp_server.local_tools import register_local_tools
 from wrg_mcp_server.tools.arastirma_ussu import register_arastirma_ussu_tools
 from wrg_mcp_server.tools.maigret_osint import register_maigret_tools
 from wrg_mcp_server.tools.polymarket import register_polymarket_tools
+from wrg_mcp_server.tools.ransom_radar import register_ransom_radar_tools
 from wrg_mcp_server.tools.research_motor_api import register_research_motor_api_tools
 from wrg_mcp_server.tools.research_platform import register_research_platform_tools
+from wrg_mcp_server.tools.threat_intel import register_threat_intel_tools
 from wrg_mcp_server.tools.trading_agents import register_trading_agents_tools
 
 # httpx is optional — only needed for remote tools (site/pulseboard)
@@ -50,6 +52,8 @@ def create_mcp_server(
             "Arastirma Ussu tools: arastirma_ask, arastirma_doc_search, arastirma_web_search, arastirma_memory_search.\n"
             "Trading tools: trading_analyze (full multi-agent), trading_quick_signal (fast RSI/price).\n"
             "OSINT tools: maigret_search (username → 3000+ site account discovery).\n"
+            "Threat-intel tools: attack_surface_passive, ransomware_lookup, darkweb_brand_watch.\n"
+            "Ransom-radar tools: ransom_radar_tick, ransom_radar_status.\n"
             "Remote tools: site_* (company site APIs), pulseboard_* (GitHub health dashboard).\n"
             "Use connector_status to check which remote services are configured."
         ),
@@ -262,5 +266,7 @@ def create_mcp_server(
     register_polymarket_tools(mcp)
     register_maigret_tools(mcp)
     register_research_platform_tools(mcp)
+    register_threat_intel_tools(mcp)
+    register_ransom_radar_tools(mcp)
 
     return mcp
