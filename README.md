@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.yakuphanycl/wrg-mcp-server -->
+<!-- mcp-name: io.github.WRG-11/wrg-mcp-server -->
 
 # wrg_mcp_server
 
@@ -8,8 +8,8 @@
 MCP (Model Context Protocol) server exposing the WinstonRedGuard monorepo to Claude and other MCP-compatible AI agents. Built on `FastMCP` — registers tools from every active WRG app so an agent can inspect the repo, run pipelines, query memory, and call remote services without shelling out.
 
 **Published:**
-- PyPI: [`wrg-mcp-server`](https://pypi.org/project/wrg-mcp-server/) (v1.0.1, 2026-04-25)
-- MCP Registry: [`io.github.yakuphanycl/wrg-mcp-server`](https://registry.modelcontextprotocol.io/v0/servers?search=wrg-mcp-server) (status: `active`, 2026-04-25)
+- PyPI: [`wrg-mcp-server`](https://pypi.org/project/wrg-mcp-server/) (v1.0.2)
+- MCP Registry: [`io.github.WRG-11/wrg-mcp-server`](https://registry.modelcontextprotocol.io/v0/servers?search=wrg-mcp-server) (status: `active`)
 
 ## Transports
 
@@ -25,9 +25,10 @@ Flags: `--host 0.0.0.0` · `--port 8080` · `--mcp-path /mcp`
 
 ```bash
 cd apps/wrg_mcp_server
-pip install -e .             # core: MCP + local tools only
-pip install -e ".[remote]"   # adds httpx for site_* / pulseboard_* tools
-pip install -e ".[dev]"      # pytest + pytest-asyncio
+pip install -e .                  # core: MCP + local tools only
+pip install -e ".[remote]"        # adds httpx for site_* / pulseboard_* tools
+pip install -e ".[threat-intel]"  # adds wrg_threat_intel for attack_surface/ransomware/darkweb tools
+pip install -e ".[dev]"           # pytest + pytest-asyncio
 ```
 
 ## Tools exposed
@@ -47,6 +48,50 @@ pip install -e ".[dev]"      # pytest + pytest-asyncio
 | `research_motor_healthz`, `research_motor_scan_create`, `research_motor_scan_get` | `research_motor` HTTP API v1 over localhost |
 | `vault_audit` | `wrg_vault` audit ledger inspection |
 | `scheduler_task_list`, `scheduler_tick_dry_run` | `wrg_scheduler` inspection |
+
+### Arastirma Ussu (opt-in via env)
+
+| Tool | What it does |
+|---|---|
+| `arastirma_ask` | Ask a question to the Arastirma Ussu knowledge base |
+| `arastirma_doc_search` | Search documents in the knowledge base |
+| `arastirma_web_search` | Web search through Arastirma Ussu |
+| `arastirma_memory_search` | Search memory entries |
+
+### Trading (opt-in via env)
+
+| Tool | What it does |
+|---|---|
+| `trading_analyze` | Full multi-agent trading analysis for a ticker |
+| `trading_quick_signal` | Fast RSI/price signal for a ticker |
+
+### OSINT
+
+| Tool | What it does |
+|---|---|
+| `maigret_search` | Username search across 3000+ sites (Maigret) |
+
+### Threat-intel (opt-in via `[threat-intel]` extra)
+
+| Tool | What it does |
+|---|---|
+| `attack_surface_passive` | Passive attack surface reconnaissance |
+| `ransomware_lookup` | Ransomware group/victim lookup |
+| `darkweb_brand_watch` | Dark web brand mention monitoring |
+
+### Ransom-radar
+
+| Tool | What it does |
+|---|---|
+| `ransom_radar_tick` | Run a ransom-radar feed tick |
+| `ransom_radar_status` | Check ransom-radar watchlist status |
+
+### Other
+
+| Tool | What it does |
+|---|---|
+| `polymarket_event_signal` | Polymarket event signal analysis |
+| `research_deep` | Deep research with AI research platform |
 
 ### Remote (HTTP, opt-in via env)
 
