@@ -49,6 +49,50 @@ pip install -e ".[dev]"           # pytest + pytest-asyncio
 | `vault_audit` | `wrg_vault` audit ledger inspection |
 | `scheduler_task_list`, `scheduler_tick_dry_run` | `wrg_scheduler` inspection |
 
+#### Round 39 — silo-app expansion (6 apps × 2 tools = 12 tools)
+
+**AI fingerprint** (`wrg_ai_fingerprint`)
+
+| Tool | What it does |
+|---|---|
+| `ai_fingerprint_scan` | Scan a path for AI-generated code signals; supports `min_score`, `exclude[]` |
+| `ai_fingerprint_detectors` | List registered detectors and their weights |
+
+**DevGuard** (`wrg_devguard`)
+
+| Tool | What it does |
+|---|---|
+| `devguard_scan` | Run policy / secrets / crypto scans on a path; empty `scan_types` runs combined `check` |
+| `devguard_baseline` | List configured policy profiles (baseline + strict) and presence |
+
+**Security suite** (`wrg_security_suite`) — `security_suite_run` is mutation-gated
+
+| Tool | What it does |
+|---|---|
+| `security_suite_run` | Run code / person / network / full scan (**mutation** — requires `WRG_MCP_ALLOW_MUTATIONS=1`) |
+| `security_suite_report` | Read a scan report by `scan_id` from `apps/wrg_security_suite/reports/` (read-only) |
+
+**Rule lab** (`rule_lab`)
+
+| Tool | What it does |
+|---|---|
+| `rule_lab_test` | Simulate a rule set against sample contexts (`simulate --json`) |
+| `rule_lab_list` | List rule files under `$WRG_RULE_LAB_DIR` or `<repo>/.wrg/rules` |
+
+**Data janitor** (`data_janitor`) — `data_janitor_sweep` mutation-gated when `dry_run=False`
+
+| Tool | What it does |
+|---|---|
+| `data_janitor_sweep` | Scan (dry-run) or clean build artifacts; non-dry requires `WRG_MCP_ALLOW_MUTATIONS=1` |
+| `data_janitor_orphans` | Preview orphan / build-artifact targets (read-only) |
+
+**Notifier** (`wrg_notifier3`) — `notifier_send` is mutation-gated
+
+| Tool | What it does |
+|---|---|
+| `notifier_send` | Dispatch a message to a configured channel (**mutation** — requires `WRG_MCP_ALLOW_MUTATIONS=1`) |
+| `notifier_channels` | Introspect available channel adapters (read-only) |
+
 ### Arastirma Ussu (opt-in via env)
 
 | Tool | What it does |
@@ -140,7 +184,7 @@ Example MCP tool payloads:
 
 ### Mutation gate (default: off)
 
-State-changing tools (`memory_set`, `pipeline_run`) refuse to execute unless:
+State-changing tools (`memory_set`, `pipeline_run`, `security_suite_run`, `data_janitor_sweep` non-dry, `notifier_send`) refuse to execute unless:
 
 ```bash
 WRG_MCP_ALLOW_MUTATIONS=1

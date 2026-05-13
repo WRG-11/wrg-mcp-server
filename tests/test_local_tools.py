@@ -165,6 +165,13 @@ def test_register_local_tools_adds_tools() -> None:
         "memory_get", "memory_set", "memory_list", "memory_search",
         "pipeline_list", "pipeline_show", "pipeline_run",
         "release_check",
+        # Round 39: 6 silo apps × 2 tools = 12 new local tools
+        "ai_fingerprint_scan", "ai_fingerprint_detectors",
+        "devguard_scan", "devguard_baseline",
+        "security_suite_run", "security_suite_report",
+        "rule_lab_test", "rule_lab_list",
+        "data_janitor_sweep", "data_janitor_orphans",
+        "notifier_send", "notifier_channels",
     }
     # Remote tools
     expected_remote = {

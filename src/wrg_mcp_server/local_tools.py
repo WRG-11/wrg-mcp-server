@@ -627,3 +627,312 @@ def register_local_tools(mcp: FastMCP) -> None:
         if not isinstance(due, list):
             due = []
         return {"ok": True, "due": due, "count": len(due)}
+
+    # ── wrg_ai_fingerprint ────────────────────────────────────────
+    # Round 39: MCP expansion wave — 6 silo app × 2 tool = 12 tools.
+    # Convention: <app_short>_<verb>, async, _run_cli envelope,
+    # mutation tools gated by WRG_MCP_ALLOW_MUTATIONS.
+
+    @mcp.tool()
+    async def ai_fingerprint_scan(
+        path: str,
+        min_score: float = 0.5,
+        exclude: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Scan a path for AI-augmented code fingerprints.
+
+        Use when the user asks "scan for AI-generated code", "is this
+        LLM-written?", or before reviewing security-sensitive PRs. Returns
+        the standard _run_cli envelope: {ok, exit_code, output, stderr?}.
+        """
+        args = [py, "-m", "wrg_ai_fingerprint", "scan", path,
+                "--min-score", str(float(min_score)), "--json"]
+        for ex in (exclude or []):
+            args.extend(["--exclude", str(ex)])
+        return await _run_cli(*args, timeout=300.0,
+                              app_name="wrg_ai_fingerprint")
+
+    @mcp.tool()
+    async def ai_fingerprint_detectors() -> dict[str, Any]:
+        """List registered AI-fingerprint detectors and their weights.
+
+        Use when the user asks "what detectors are available?", "show
+        fingerprint signals", or before ai_fingerprint_scan to understand
+        what will be measured. Returns the standard _run_cli envelope:
+        {ok, exit_code, output, stderr?}.
+        """
+        return await _run_cli(
+            py, "-m", "wrg_ai_fingerprint", "detectors",
+            timeout=60.0, app_name="wrg_ai_fingerprint",
+        )
+
+    # ── wrg_devguard ──────────────────────────────────────────────
+
+    @mcp.tool()
+    async def devguard_scan(
+        path: str,
+        scan_types: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Run wrg_devguard policy / secrets / crypto scans on a path.
+
+        Use when the user asks "scan this repo for policy violations",
+        "check secrets / weak crypto", or before merging changes that
+        touch security-sensitive code. Empty ``scan_types`` runs the
+        combined ``check`` subcommand (lint-policy + scan-secrets).
+        Supported types: ``secrets``, ``crypto``, ``credentials``,
+        ``threat``, ``logs``, ``policy``. Returns the standard _run_cli
+        envelope: {ok, exit_code, output, stderr?}.
+        """
+        types = list(scan_types or [])
+        valid = {"secrets", "crypto", "credentials", "threat", "logs", "policy"}
+        unknown = [t for t in types if t not in valid]
+        if unknown:
+            return {
+                "ok": False,
+                "error": f"unknown scan_types: {unknown}; expected subset of {sorted(valid)}",
+            }
+        if not types:
+            args = [py, "-m", "wrg_devguard.cli", "check", "--path", path]
+        else:
+            # Single-subcommand dispatch keeps the envelope shape stable.
+            t = types[0]
+            sub = "lint-policy" if t == "policy" else f"scan-{t}"
+            args = [py, "-m", "wrg_devguard.cli", sub, "--path", path]
+        return await _run_cli(*args, timeout=300.0, app_name="wrg_devguard")
+
+    @mcp.tool()
+    async def devguard_baseline() -> dict[str, Any]:
+        """List wrg_devguard policy profiles (baseline + strict) and presence.
+
+        Use when the user asks "what devguard profiles exist?", "is the
+        baseline policy in place?", or before devguard_scan to confirm a
+        profile is configured. Wraps the ``profiles`` subcommand. Returns
+        the standard _run_cli envelope: {ok, exit_code, output, stderr?}.
+        """
+        return await _run_cli(
+            py, "-m", "wrg_devguard.cli", "profiles",
+            timeout=60.0, app_name="wrg_devguard",
+        )
+
+    # ── wrg_security_suite ────────────────────────────────────────
+
+    @mcp.tool()
+    async def security_suite_run(
+        target: str,
+        profile: str = "default",
+    ) -> dict[str, Any]:
+        """Run a wrg_security_suite scan (MUTATION — performs network probes).
+
+        MUTATION: spawns code/person/network scanners that may issue real
+        network traffic and write report artifacts, so it requires
+        WRG_MCP_ALLOW_MUTATIONS=1 in the server env. ``profile`` selects
+        the subcommand: ``code`` → ``scan-code --path``, ``person`` →
+        ``scan-person`` (target = username), ``network`` → ``scan-network``,
+        ``full`` / ``default`` → ``full`` (all scanners).
+        """
+        if not _mutations_allowed():
+            return _mutation_denied("security_suite_run")
+        allowed = {"default", "full", "code", "person", "network"}
+        if profile not in allowed:
+            return {
+                "ok": False,
+                "error": f"unknown profile: {profile!r}; expected one of {sorted(allowed)}",
+            }
+        if profile == "code":
+            args = [py, "-m", "wrg_security_suite.cli", "scan-code", "--path", target]
+        elif profile == "person":
+            args = [py, "-m", "wrg_security_suite.cli", "scan-person", target]
+        elif profile == "network":
+            args = [py, "-m", "wrg_security_suite.cli", "scan-network", target]
+        else:
+            args = [py, "-m", "wrg_security_suite.cli", "full", target]
+        return await _run_cli(*args, timeout=600.0,
+                              app_name="wrg_security_suite")
+
+    @mcp.tool()
+    async def security_suite_report(scan_id: str = "") -> dict[str, Any]:
+        """Read a wrg_security_suite scan report by id (read-only).
+
+        Use when the user asks "show that security scan report", "open
+        results for scan X", or after security_suite_run completes and
+        reports its scan_id. Empty ``scan_id`` returns the latest report.
+        Reads from the suite's reports directory rooted at the repo, so
+        no network or mutation occurs. Returns the standard _run_cli
+        envelope: {ok, exit_code, output, stderr?}.
+        """
+        snippet = (
+            "import json, os, sys; "
+            "from pathlib import Path; "
+            "root = Path(os.environ.get('WRG_REPO_ROOT') or '.'); "
+            "rd = root / 'apps' / 'wrg_security_suite' / 'reports'; "
+            "files = sorted(rd.glob('*.json')) if rd.is_dir() else []; "
+            "scan_id = " + repr(scan_id) + "; "
+            "target = (rd / (scan_id + '.json')) if scan_id else (files[-1] if files else None); "
+            "out = {'ok': False, 'error': 'no reports'} if target is None "
+            "else ({'ok': True, 'scan_id': target.stem, 'report': json.loads(target.read_text(encoding='utf-8'))} "
+            "if target.exists() else {'ok': False, 'error': f'report not found: {target.name}'}); "
+            "sys.stdout.write(json.dumps(out))"
+        )
+        env_root = {**os.environ, "WRG_REPO_ROOT": repo_root}
+        return await anyio.to_thread.run_sync(
+            partial(
+                _run_cli_sync,
+                (py, "-c", snippet),
+                60.0,
+                repo_root,
+                {**env_root, "PYTHONIOENCODING": "utf-8",
+                 "PYTHONDONTWRITEBYTECODE": "1"},
+            ),
+        )
+
+    # ── rule_lab ──────────────────────────────────────────────────
+
+    @mcp.tool()
+    async def rule_lab_test(
+        rule_file: str,
+        sample_file: str,
+    ) -> dict[str, Any]:
+        """Simulate a rule_lab rule set against sample contexts.
+
+        Use when the user asks "test these rules against this sample",
+        "simulate rule firing", or while iterating on rule_lab JSON rule
+        files. ``rule_file`` is a JSON rule list, ``sample_file`` is a
+        JSON array of contexts. Returns the standard _run_cli envelope:
+        {ok, exit_code, output, stderr?}.
+        """
+        return await _run_cli(
+            py, "-m", "rule_lab.cli", "simulate",
+            "--rules", rule_file,
+            "--contexts", sample_file,
+            "--json",
+            timeout=300.0, app_name="rule_lab",
+        )
+
+    @mcp.tool()
+    async def rule_lab_list() -> dict[str, Any]:
+        """List rule_lab rule files discovered in the project rules directory.
+
+        Use when the user asks "what rule files exist?", "list rule_lab
+        rules", or before rule_lab_test when the exact rule path is
+        unknown. Reads from ``$WRG_RULE_LAB_DIR`` or, if unset, from
+        ``<repo>/.wrg/rules`` and ``apps/rule_lab/tests/fixtures``.
+        Returns {ok, rules: [{path, name}], count}.
+        """
+        snippet = (
+            "import json, os, sys; "
+            "from pathlib import Path; "
+            "root = Path(os.environ.get('WRG_REPO_ROOT') or '.'); "
+            "env_dir = os.environ.get('WRG_RULE_LAB_DIR'); "
+            "candidates = ([Path(env_dir)] if env_dir else "
+            "[root / '.wrg' / 'rules', root / 'apps' / 'rule_lab' / 'tests' / 'fixtures']); "
+            "found = []; "
+            "[found.extend(sorted(p.rglob('*.json'))) for p in candidates if p.is_dir()]; "
+            "rules = [{'path': str(f), 'name': f.stem} for f in found]; "
+            "sys.stdout.write(json.dumps({'ok': True, 'rules': rules, 'count': len(rules)}))"
+        )
+        env_root = {**os.environ, "WRG_REPO_ROOT": repo_root,
+                    "PYTHONIOENCODING": "utf-8",
+                    "PYTHONDONTWRITEBYTECODE": "1"}
+        return await anyio.to_thread.run_sync(
+            partial(_run_cli_sync, (py, "-c", snippet), 30.0, repo_root, env_root),
+        )
+
+    # ── data_janitor ──────────────────────────────────────────────
+
+    @mcp.tool()
+    async def data_janitor_sweep(
+        path: str = "",
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Sweep build artifacts via data_janitor.
+
+        Read-only when ``dry_run=True`` (uses ``scan`` subcommand).
+        MUTATION: ``dry_run=False`` invokes ``clean`` which removes
+        files from disk and requires WRG_MCP_ALLOW_MUTATIONS=1 in the
+        server env. Empty ``path`` defaults to the repo root.
+        """
+        if not dry_run and not _mutations_allowed():
+            return _mutation_denied("data_janitor_sweep")
+        sub = "scan" if dry_run else "clean"
+        args = [py, "-m", "data_janitor.cli"]
+        if path:
+            args.extend(["--repo-root", path])
+        args.extend([sub, "--target", "all"])
+        return await _run_cli(*args, timeout=120.0, app_name="data_janitor")
+
+    @mcp.tool()
+    async def data_janitor_orphans() -> dict[str, Any]:
+        """List orphan / build-artifact targets discovered by data_janitor (read-only).
+
+        Use when the user asks "what cleanup targets exist?", "show
+        orphan artifacts", or before data_janitor_sweep to preview the
+        scope. Wraps ``data_janitor scan --target all`` (dry-run). Returns
+        the standard _run_cli envelope: {ok, exit_code, output, stderr?}.
+        """
+        return await _run_cli(
+            py, "-m", "data_janitor.cli", "scan", "--target", "all",
+            timeout=60.0, app_name="data_janitor",
+        )
+
+    # ── wrg_notifier3 ─────────────────────────────────────────────
+
+    @mcp.tool()
+    async def notifier_send(
+        channel: str,
+        message: str,
+    ) -> dict[str, Any]:
+        """Send a notification through wrg_notifier3 (MUTATION — external send).
+
+        MUTATION: dispatches to a real notification channel (e.g. log,
+        webhook, email) and may trigger external side-effects, so it
+        requires WRG_MCP_ALLOW_MUTATIONS=1 in the server env. ``channel``
+        is the configured channel name; use ``notifier_channels`` to
+        list available channels.
+        """
+        if not _mutations_allowed():
+            return _mutation_denied("notifier_send")
+        if not channel or not isinstance(channel, str):
+            return {"ok": False, "error": "channel must be a non-empty string"}
+        if not message or not isinstance(message, str):
+            return {"ok": False, "error": "message must be a non-empty string"}
+        return await _run_cli(
+            py, "-m", "wrg_notifier3", "send",
+            "--channel", channel,
+            "--message", message,
+            timeout=60.0, app_name="wrg_notifier3",
+        )
+
+    @mcp.tool()
+    async def notifier_channels() -> dict[str, Any]:
+        """List wrg_notifier3 channel adapters available in this checkout.
+
+        Use when the user asks "which notifier channels are configured?",
+        "show wrg_notifier3 adapters", or before notifier_send when the
+        target channel is unknown. Read-only — introspects the channels
+        module without sending anything. Returns {ok, channels: [str], count}.
+        """
+        snippet = (
+            "import importlib, json, sys; "
+            "names = []; "
+            "candidates = ('wrg_notifier3.channels', 'wrg_notifier3.adapters', 'wrg_notifier3'); "
+            "for modname in candidates:\n"
+            "    try:\n"
+            "        m = importlib.import_module(modname)\n"
+            "    except ImportError:\n"
+            "        continue\n"
+            "    for attr in ('CHANNELS', 'ADAPTERS', 'channels', 'adapters'):\n"
+            "        obj = getattr(m, attr, None)\n"
+            "        if isinstance(obj, dict):\n"
+            "            names = sorted(obj.keys())\n"
+            "            break\n"
+            "        if isinstance(obj, (list, tuple, set)):\n"
+            "            names = sorted(str(x) for x in obj)\n"
+            "            break\n"
+            "    if names:\n"
+            "        break\n"
+            "sys.stdout.write(json.dumps({'ok': True, 'channels': names, 'count': len(names)}))"
+        )
+        return await _run_cli(
+            py, "-c", snippet,
+            timeout=30.0, app_name="wrg_notifier3",
+        )
