@@ -666,6 +666,76 @@ def register_local_tools(mcp: FastMCP) -> None:
             timeout=60.0, app_name="wrg_ai_fingerprint",
         )
 
+    # ── wrg_ai_fingerprint_sigma (R42) ────────────────────────────
+    # R40 shipped wrg_ai_fingerprint_sigma; R42 exposes its emit step
+    # as a Claude-callable MCP tool so the Phase 9.4 R4 chain
+    # (scan → emit → validate) is reachable end-to-end via MCP.
+
+    @mcp.tool()
+    async def ai_fingerprint_sigma_emit(
+        scan_json: list[dict[str, Any]] | None = None,
+        input_file: str | None = None,
+        date_override: str | None = None,
+    ) -> dict[str, Any]:
+        """Convert wrg_ai_fingerprint scan output into Sigma rule YAML.
+
+        Use when the user asks "convert these fingerprint findings to
+        Sigma", "emit detection rules from the scan", or after running
+        ai_fingerprint_scan and wanting downstream SOC-pipeline deployable
+        rules. Provide exactly one of ``scan_json`` (inline list of result
+        dicts) or ``input_file`` (path to a JSON file). ``date_override``
+        is optional (YYYY-MM-DD); when omitted the emitter picks its own
+        default. Returns the standard _run_cli envelope; on success the
+        ``output`` field carries the rendered Sigma YAML as text.
+        """
+        if scan_json is not None and input_file is not None:
+            return {
+                "ok": False,
+                "error": "Provide either scan_json or input_file, not both",
+            }
+        if scan_json is None and input_file is None:
+            return {
+                "ok": False,
+                "error": "Provide either scan_json or input_file",
+            }
+
+        tmp_path: Path | None = None
+        try:
+            if scan_json is not None:
+                # _run_cli has no stdin pipe (subprocess.DEVNULL), so we
+                # materialise inline JSON to a temp file and pass it as
+                # the positional input.
+                import tempfile
+                fd, name = tempfile.mkstemp(
+                    prefix="wrg_sigma_emit_", suffix=".json"
+                )
+                tmp_path = Path(name)
+                try:
+                    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                        json.dump(scan_json, handle)
+                except Exception:
+                    tmp_path.unlink(missing_ok=True)
+                    raise
+                input_arg = str(tmp_path)
+            else:
+                # input_file is guaranteed non-None by the guard above.
+                input_arg = str(input_file)
+
+            args = [
+                py, "-m", "wrg_ai_fingerprint_sigma", "emit",
+                input_arg, "--stdout",
+            ]
+            if date_override:
+                args.extend(["--date", date_override])
+
+            return await _run_cli(
+                *args, timeout=120.0,
+                app_name="wrg_ai_fingerprint_sigma",
+            )
+        finally:
+            if tmp_path is not None:
+                tmp_path.unlink(missing_ok=True)
+
     # ── wrg_devguard ──────────────────────────────────────────────
 
     @mcp.tool()

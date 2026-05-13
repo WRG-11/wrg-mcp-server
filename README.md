@@ -57,6 +57,7 @@ pip install -e ".[dev]"           # pytest + pytest-asyncio
 |---|---|
 | `ai_fingerprint_scan` | Scan a path for AI-generated code signals; supports `min_score`, `exclude[]` |
 | `ai_fingerprint_detectors` | List registered detectors and their weights |
+| `ai_fingerprint_sigma_emit` | Convert fingerprint scan JSON into Sigma YAML rules (R42 — `wrg_ai_fingerprint_sigma emit`; pass `input_file` *or* `scan_json`, optional `date_override`) |
 
 **DevGuard** (`wrg_devguard`)
 
