@@ -5,9 +5,7 @@ for tool functions that depend on external packages.
 """
 from __future__ import annotations
 
-import json
-import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
