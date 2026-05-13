@@ -1,8 +1,27 @@
 # MCP Registry submission package — `wrg_mcp_server`
 
-> **Status**: **draft, not yet submitted.** This file + `server.json` are the packaged artefacts ready for submission to the [official MCP Registry](https://registry.modelcontextprotocol.io/). Submission itself is a manual step the maintainer runs after PyPI publish — see §7.
+> **Status (2026-05-13): HISTORICAL — superseded by account migration.**
 >
-> **Author**: automation (Agent B, 2026-04-24). Research based on MCP Registry docs at 2026-04-24.
+> **PyPI live state** (verified 2026-05-13 via `pypi.org/pypi/wrg-mcp-server/json`):
+> - Package `wrg-mcp-server` published, versions: `1.0.0`, `1.0.2` (1.0.1 skipped)
+> - Author email: canonical `yakuphan.yucel11@gmail.com` ✓
+> - All Project URLs point to `github.com/yakuphanycl/WinstonRedGuard` → **404** (account blocked 2026-04-27 per `memory/incident_github_suspension_2026_04_27.md`)
+> - Anyone running `pip install wrg-mcp-server` today hits dead doc/repo/issues links
+>
+> **MCP Registry state**: `io.github.yakuphanycl/wrg-mcp-server` returns **404** at Registry — submission probably never completed (only PyPI publish landed) or entry was purged.
+>
+> **Why this doc is frozen**:
+> - All in-doc references to `yakuphanycl` GitHub URLs + `io.github.yakuphanycl/...` namespace match the live PyPI v1.0.2 metadata. Editing in place would create skew between this spec and the actually-published artifacts.
+> - `server.json` and the `<!-- mcp-name: io.github.yakuphanycl/wrg-mcp-server -->` marker in `apps/wrg_mcp_server/README.md` line 1 are deliberately **not changed** — they form a self-consistent record of the v1.0.2 publish.
+>
+> **Migration plan** (R44+ candidate, not yet scoped):
+> 1. PyPI re-publish: pyproject.toml URLs → `github.com/WRG-11/WinstonRedGuard/...`, version bump to `1.0.3`
+> 2. Decide: new MCP Registry namespace `io.github.WRG-11/wrg-mcp-server` requires fresh GitHub OAuth + new `server.json` namespace + new README marker — effectively a new Registry entry (the old namespace stays orphaned because the auth chain is broken)
+> 3. Trade-off vs. abandon: Registry presence has low organic traffic value while WRG-11 account is fresh; deferring is reasonable. Memory: `feedback_anti_ban_hardening.md` + `references_external.md` for namespace-rename precedent.
+>
+> **Author of original doc**: automation (Agent B, 2026-04-24). Research based on MCP Registry docs at 2026-04-24.
+
+---
 
 ---
 
