@@ -62,6 +62,10 @@ STUBS_ARASTIRMA_USSU: dict[str, dict[str, Any]] = {
     "arastirma_ussu.agent.tools": {"web_search": lambda *a, **kw: None, "build_tool_registry": lambda *a, **kw: None},
     "arastirma_ussu.agent.graph": {"build_graph": lambda *a, **kw: None},
     "arastirma_ussu.agent.prompts": {"build_system_prompt": lambda *a, **kw: ""},
+    "arastirma_ussu.crew": {},
+    "arastirma_ussu.guards": {},
+    "arastirma_ussu.guards.pipeline": {},
+    "arastirma_ussu.eval": {"evaluate_answer": lambda *a, **kw: None},
     "langchain_core": {},
     "langchain_core.messages": {"HumanMessage": MagicMock, "SystemMessage": MagicMock},
 }

@@ -387,6 +387,65 @@ class TestArastirmaUssuTool:
         assert result["ok"] is False
         assert "ollama down" in result["error"]
 
+    @pytest.mark.asyncio
+    async def test_health_all_modules_stubbed(self):
+        """Health probe: with fake_arastirma_ussu fixture all import probes
+        should report available; Ollama/Qdrant probes report 'reachable: false'
+        on a clean dev box without those services (no exception)."""
+        tools = self._register()
+        result = await tools["arastirma_health"]()
+        assert result["ok"] is True
+        assert "arastirma_ussu" in result["checks"]
+        assert result["checks"]["arastirma_ussu"]["available"] is True
+        assert result["checks"]["layer55_eval"]["available"] is True
+        # Ollama + Qdrant are real HTTP probes; just assert shape, not reachability.
+        assert "reachable" in result["checks"]["ollama"]
+        assert "reachable" in result["checks"]["qdrant"]
+        assert result["summary"].endswith("/9 healthy")
+
+    @pytest.mark.asyncio
+    async def test_eval_skeleton_returns_nan_without_judge(self):
+        """arastirma_eval no-judge path returns the all-nan JudgeResult."""
+        import math
+        from dataclasses import dataclass
+
+        @dataclass
+        class _StubResult:
+            faithfulness: float = math.nan
+            answer_relevancy: float = math.nan
+            context_recall: float = math.nan
+            raw: dict = None  # type: ignore[assignment]
+
+            def __post_init__(self) -> None:
+                if self.raw is None:
+                    self.raw = {"reason": "no llm provided"}
+
+            @property
+            def overall(self) -> float:
+                return math.nan
+
+            def is_passing(self, threshold: float = 0.7) -> bool:
+                return False
+
+        tools = self._register()
+        with patch("arastirma_ussu.eval.evaluate_answer", return_value=_StubResult()):
+            result = await tools["arastirma_eval"]("q", "a", ["c"])
+        assert result["ok"] is True
+        assert math.isnan(result["faithfulness"])
+        assert math.isnan(result["overall"])
+        assert result["is_passing"] is False
+        assert result["raw"]["reason"] == "no llm provided"
+
+    @pytest.mark.asyncio
+    async def test_eval_import_error_message(self):
+        """When arastirma_ussu.eval can't import, the wrapper relays a
+        clear hint about installing the package."""
+        tools = self._register()
+        with patch("arastirma_ussu.eval.evaluate_answer", side_effect=ImportError("ragas missing")):
+            result = await tools["arastirma_eval"]("q", "a", ["c"])
+        assert result["ok"] is False
+        assert "ragas missing" in result["error"]
+
 
 # ---------------------------------------------------------------------------
 # maigret_osint — helper + ImportError
