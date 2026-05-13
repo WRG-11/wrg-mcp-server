@@ -78,10 +78,10 @@ async def test_governance_run_default_builds_check_cli(
     args = fake.calls[0][0]
     kwargs = fake.calls[0][1]
     assert "-m" in args
-    assert "governance_check.cli" in args
+    assert "wrg_governance.checks.cli" in args
     assert "check" in args
     assert "--repo-root" in args
-    assert kwargs.get("app_name") == "governance_check"
+    assert kwargs.get("app_name") == "wrg_governance"
     # 120s timeout for governance scans is the documented contract.
     assert kwargs.get("timeout") == 120.0
 

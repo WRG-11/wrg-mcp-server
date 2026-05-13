@@ -149,7 +149,7 @@ async def _run_cli(
 
 def _read_registry() -> list[dict[str, Any]]:
     """Read app registry directly from registry.json (no subprocess needed)."""
-    reg_path = _APPS_DIR / "app_registry" / "src" / "app_registry" / "data" / "registry.json"
+    reg_path = _APPS_DIR / "wrg_governance" / "src" / "wrg_governance" / "registry" / "data" / "registry.json"
     if not reg_path.exists():
         return []
     data = json.loads(reg_path.read_text(encoding="utf-8"))
@@ -271,10 +271,10 @@ def register_local_tools(mcp: FastMCP) -> None:
         Pass app name to check a single app, or leave empty for all.
         Returns structured governance results.
         """
-        args = [py, "-m", "governance_check.cli", "check",
+        args = [py, "-m", "wrg_governance.checks.cli", "check",
                 "--repo-root", repo_root]
         result = await _run_cli(*args, timeout=120.0,
-                                app_name="governance_check")
+                                app_name="wrg_governance")
         if app and result.get("ok") and isinstance(result.get("output"), str):
             # Filter output for the specific app
             lines = result["output"].splitlines()
@@ -356,9 +356,9 @@ def register_local_tools(mcp: FastMCP) -> None:
     async def pulse_check() -> dict[str, Any]:
         """Check WRG system health — all apps, governance, pipelines (JSON)."""
         return await _run_cli(
-            py, "-m", "pulse_core.pulse_cli", "check", "--json",
+            py, "-m", "pulseboard.collectors.pulse_core.pulse_cli", "check", "--json",
             "--repo-root", repo_root,
-            app_name="pulse_core",
+            app_name="pulseboard",
         )
 
     # ── wrg_memory ────────────────────────────────────────────────

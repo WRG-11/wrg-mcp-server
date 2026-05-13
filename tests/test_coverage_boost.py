@@ -772,7 +772,7 @@ class TestLocalToolsPulseCheck:
         result = await _call("pulse_check")
         assert result["ok"] is True
         args = fake.calls[0][0]
-        assert "pulse_core.pulse_cli" in args
+        assert "pulseboard.collectors.pulse_core.pulse_cli" in args
         assert "check" in args
         assert "--json" in args
 

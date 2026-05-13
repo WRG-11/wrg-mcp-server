@@ -81,10 +81,10 @@ async def test_run_cli_with_app_name_sets_pythonpath() -> None:
     code = "import os; print(os.environ.get('PYTHONPATH', ''))"
     result = await _run_cli(
         sys.executable, "-c", code,
-        app_name="pulse_core",
+        app_name="pulseboard",
     )
     assert result["ok"] is True
-    assert "pulse_core" in str(result["output"])
+    assert "pulseboard" in str(result["output"])
 
 
 # ── Helper function tests ────────────────────────────────────────
@@ -138,9 +138,9 @@ def test_build_env_without_app() -> None:
 
 def test_build_env_with_app() -> None:
     """With app_name, PYTHONPATH includes the app's src/."""
-    env = _build_env("pulse_core")
+    env = _build_env("pulseboard")
     assert "PYTHONPATH" in env
-    assert "pulse_core" in env["PYTHONPATH"]
+    assert "pulseboard" in env["PYTHONPATH"]
 
 
 # ── register_local_tools ──────────────────────────────────────────

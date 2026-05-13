@@ -43,9 +43,10 @@ def _live_registry() -> list[dict[str, Any]]:
     reg_path = (
         repo_root
         / "apps"
-        / "app_registry"
+        / "wrg_governance"
         / "src"
-        / "app_registry"
+        / "wrg_governance"
+        / "registry"
         / "data"
         / "registry.json"
     )
