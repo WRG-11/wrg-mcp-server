@@ -152,3 +152,33 @@ class TestInfoOpsHappyPath:
         for actor in result["matched_actors"]:
             assert "sigma_rules" not in actor
             assert "incidents" not in actor
+
+    def test_mitre_technique_filter_matches_russia_nexus(self) -> None:
+        tools = _get_tools()
+        # T1585.001 is the INFO_OPS social-media accounts sub-technique
+        # tagged on russia_nexus_info_ops in PR #35.
+        result = tools["info_ops_detect"].fn(mitre_technique="T1585.001")
+        assert result["ok"] is True
+        assert result["technique_filter"] == "T1585.001"
+        actor_ids = [a["id"] for a in result["matched_actors"]]
+        assert "russia_nexus_info_ops" in actor_ids
+        assert "T1585.001" in result["summary"]
+
+    def test_mitre_technique_filter_unknown_returns_empty(self) -> None:
+        tools = _get_tools()
+        result = tools["info_ops_detect"].fn(mitre_technique="T9999.999")
+        assert result["ok"] is True
+        assert result["actor_count"] == 0
+        assert result["matched_actors"] == []
+
+    def test_mitre_technique_filter_combines_with_modus(self) -> None:
+        tools = _get_tools()
+        # Russia-nexus uses T1583 (Acquire Infrastructure parent), but
+        # restricting to modus=double-extortion drops it because the
+        # Russia-nexus actor is info-ops only.
+        result = tools["info_ops_detect"].fn(
+            modus="double-extortion", mitre_technique="T1583"
+        )
+        assert result["ok"] is True
+        actor_ids = [a["id"] for a in result["matched_actors"]]
+        assert "russia_nexus_info_ops" not in actor_ids

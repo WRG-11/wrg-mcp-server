@@ -46,6 +46,7 @@ def register_info_ops_tools(mcp: FastMCP) -> None:
     def info_ops_detect(
         modus: str = "info-ops",
         actor_id: str | None = None,
+        mitre_technique: str | None = None,
         include_sigma: bool = True,
         include_incidents: bool = True,
     ) -> dict[str, Any]:
@@ -64,6 +65,14 @@ def register_info_ops_tools(mcp: FastMCP) -> None:
             actor_id: When set, overrides the modus filter and returns only
                 the named actor's detection state (e.g.
                 ``"russia_nexus_info_ops"``).
+            mitre_technique: When set, **further filters** the result so
+                only actors whose ``ttps_mitre`` includes the given technique
+                ID (e.g. ``"T1585.001"``) are returned. Combine with
+                ``modus`` for "which info-ops actors use this technique?";
+                pass with ``modus="*"`` (or any valid value) to do reverse
+                lookup. The match is exact on the technique string — use
+                the parent ID (``"T1585"``) to match every sub-technique
+                via prefix is **not** supported (callers must enumerate).
             include_sigma: When True, generate Sigma rules per matched
                 actor via ``build_actor_rules`` and include title / id /
                 level / status / tags for each rule.
@@ -112,6 +121,16 @@ def register_info_ops_tools(mcp: FastMCP) -> None:
                 aid: a
                 for aid, a in actors.items()
                 if modus_enum in a.modus_operandi
+            }
+
+        # Optional secondary filter: actors whose ttps_mitre includes the
+        # given technique ID. Combine with modus to ask "which info-ops
+        # actors use T1585.001?". Exact-match only (no prefix expansion).
+        if mitre_technique is not None:
+            matched = {
+                aid: a
+                for aid, a in matched.items()
+                if mitre_technique in a.ttps_mitre
             }
 
         result_actors: list[dict[str, Any]] = []
@@ -166,16 +185,20 @@ def register_info_ops_tools(mcp: FastMCP) -> None:
 
             result_actors.append(entry)
 
+        summary_parts = [f"{len(result_actors)} actor(s) with modus={modus}"]
+        if mitre_technique is not None:
+            summary_parts.append(f"filtered by technique {mitre_technique}")
+        summary_parts.append(f"{total_sigma} Sigma rule(s)")
+        summary_parts.append(f"{total_incidents} incident(s)")
+
         return {
             "ok": True,
             "modus": modus,
             "actor_filter": actor_id,
+            "technique_filter": mitre_technique,
             "matched_actors": result_actors,
             "actor_count": len(result_actors),
             "sigma_rule_count": total_sigma,
             "incident_count": total_incidents,
-            "summary": (
-                f"{len(result_actors)} actor(s) with modus={modus}; "
-                f"{total_sigma} Sigma rule(s); {total_incidents} incident(s)"
-            ),
+            "summary": "; ".join(summary_parts),
         }
