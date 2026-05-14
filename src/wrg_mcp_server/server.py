@@ -15,6 +15,7 @@ from mcp.server.fastmcp import FastMCP
 from wrg_mcp_server.config import AppConfig, ConfigError, ServiceConfig
 from wrg_mcp_server.local_tools import register_local_tools
 from wrg_mcp_server.tools.arastirma_ussu import register_arastirma_ussu_tools
+from wrg_mcp_server.tools.info_ops import register_info_ops_tools
 from wrg_mcp_server.tools.maigret_osint import register_maigret_tools
 from wrg_mcp_server.tools.polymarket import register_polymarket_tools
 from wrg_mcp_server.tools.ransom_radar import register_ransom_radar_tools
@@ -268,5 +269,6 @@ def create_mcp_server(
     register_research_platform_tools(mcp)
     register_threat_intel_tools(mcp)
     register_ransom_radar_tools(mcp)
+    register_info_ops_tools(mcp)
 
     return mcp
