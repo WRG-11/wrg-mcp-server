@@ -94,6 +94,34 @@ pip install -e ".[dev]"           # pytest + pytest-asyncio
 | `notifier_send` | Dispatch a message to a configured channel (**mutation** — requires `WRG_MCP_ALLOW_MUTATIONS=1`) |
 | `notifier_channels` | Introspect available channel adapters (read-only) |
 
+#### Round 50 — INFO_OPS extension
+
+| Tool | What it does |
+|---|---|
+| `info_ops_detect` | Query INFO_OPS actor corpus (default `modus=info-ops`); enrich each match with linked incidents + Sigma rules; reverse-lookup via `mitre_technique` filter |
+
+#### `info_ops_detect` usage
+
+**Default — list all INFO_OPS actors with Sigma + incidents:**
+```python
+info_ops_detect()
+# -> 3 actors (russia_nexus_info_ops, china_nexus_spamouflage, iran_nexus_apt35),
+#    ~21 Sigma rules total, linked incidents per actor
+```
+
+**Specific actor lookup:**
+```python
+info_ops_detect(actor_id="russia_nexus_info_ops")
+# -> single-actor detection state (Sigma rules + 2 incidents)
+```
+
+**Reverse-lookup — "which info-ops actors use T1656 Impersonation?":**
+```python
+info_ops_detect(mitre_technique="T1656")
+# -> china_nexus_spamouflage + iran_nexus_apt35 (R52);
+#    russia_nexus_info_ops excluded (uses T1078 Valid Accounts)
+```
+
 ### Arastirma Ussu (opt-in via env)
 
 | Tool | What it does |
