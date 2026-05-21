@@ -2,6 +2,8 @@
 
 > **Status (2026-05-13): HISTORICAL — superseded by account migration.**
 >
+> **Audit refresh 2026-05-21 (R88-52g)**: see [`docs/decisions/mcp_registry_submission_audit_2026_05_21.md`](../../docs/decisions/mcp_registry_submission_audit_2026_05_21.md) for live state verdict (**NOT-READY**, 4× P0 + 4× P1 blockers; G recommends Path C Hybrid ~1h polish; A operator final). Note revisions to in-doc claims: (a) "submission probably never completed" is outdated — Registry entry `io.github.yakuphanycl/wrg-mcp-server` v1.0.0 IS active (orphaned namespace, public repo URL 404); (b) §3 "first-mover advantage" framing requires retraction — 6-7 active threat-intel niş entries; WRG positioning is **defansif-discipline-rigorous outlier + local-first + monorepo-bridge**, not first-mover.
+>
 > **PyPI live state** (verified 2026-05-13 via `pypi.org/pypi/wrg-mcp-server/json`):
 > - Package `wrg-mcp-server` published, versions: `1.0.0`, `1.0.2` (1.0.1 skipped)
 > - Author email: canonical `yakuphan.yucel11@gmail.com` ✓
