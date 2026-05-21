@@ -19,7 +19,7 @@ from wrg_mcp_server.tools.breach_corpus import register_breach_corpus_tools
 from wrg_mcp_server.tools.info_ops import register_info_ops_tools
 from wrg_mcp_server.tools.maigret_osint import register_maigret_tools
 from wrg_mcp_server.tools.polymarket import register_polymarket_tools
-from wrg_mcp_server.tools.prompts import register_status_prompts
+from wrg_mcp_server.tools.prompts import register_status_prompts, register_workflow_prompts
 from wrg_mcp_server.tools.ransom_radar import register_ransom_radar_tools
 from wrg_mcp_server.tools.research_motor_api import register_research_motor_api_tools
 from wrg_mcp_server.tools.research_platform import register_research_platform_tools
@@ -274,5 +274,6 @@ def create_mcp_server(
     register_info_ops_tools(mcp)
     register_breach_corpus_tools(mcp)
     register_status_prompts(mcp)
+    register_workflow_prompts(mcp)
 
     return mcp
