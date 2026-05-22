@@ -6,6 +6,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-05-23
+
+### Changed
+- Repository split from the WinstonRedGuard monorepo (private) into a standalone public repo `WRG-11/wrg-mcp-server`. History preserved via `git subtree split` from `apps/wrg_mcp_server/` (1934 commits processed). Sister `instinct-mcp` v1.4.1 + `wrg-devguard` v0.2.1 + `wrg-rule-lab` v0.1.4 brand consolidation pattern; 4th PyPI release in the WRG-11 namespace consolidation.
+- `pyproject.toml` `[project.urls]` refreshed: Homepage + Repository + Issues + Documentation now point to standalone `WRG-11/wrg-mcp-server` (previously pointed to `yakuphanycl/WinstonRedGuard/tree/main/apps/wrg_mcp_server` — a private monorepo path that returned 404 to external consumers, breaking PyPI page links).
+- Changelog URL entry added (was missing in v1.0.2).
+- No behavioral changes; URL/metadata-only patch bump + standalone publication.
+
+### Added
+- `.github/workflows/publish.yml`: PyPI trusted publishing on tag push (sister `wrg-devguard` v0.2.0+ pattern; OIDC, no API token required).
+
 ## [1.0.2] - 2026-04-25
 
 Audit-driven patch release rolling up the 9 PRs landed in the
@@ -82,6 +93,7 @@ Initial PyPI release of `wrg_mcp_server` after the v1 contract stabilised.
 Surfaced 32 tools across local CLI wrappers, HTTP-API integrations
 (`research_motor_*`), and remote services (`site_*`, `pulseboard_*`).
 
-[Unreleased]: https://github.com/yakuphanycl/WinstonRedGuard/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/yakuphanycl/WinstonRedGuard/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/yakuphanycl/WinstonRedGuard/releases/tag/v1.0.1

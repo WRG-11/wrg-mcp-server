@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wrg_mcp_server"
-version = "1.0.2"
+version = "1.0.3"
 description = "WRG MCP server - exposes WinstonRedGuard tools to Claude and AI agents"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -35,10 +35,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yakuphanycl/WinstonRedGuard/tree/main/apps/wrg_mcp_server"
-Repository = "https://github.com/yakuphanycl/WinstonRedGuard"
-Issues = "https://github.com/yakuphanycl/WinstonRedGuard/issues"
-Documentation = "https://github.com/yakuphanycl/WinstonRedGuard/tree/main/apps/wrg_mcp_server#readme"
+Homepage = "https://github.com/WRG-11/wrg-mcp-server"
+Repository = "https://github.com/WRG-11/wrg-mcp-server"
+Issues = "https://github.com/WRG-11/wrg-mcp-server/issues"
+Documentation = "https://github.com/WRG-11/wrg-mcp-server#readme"
+Changelog = "https://github.com/WRG-11/wrg-mcp-server/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 remote = [
