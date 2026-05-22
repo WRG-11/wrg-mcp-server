@@ -6,6 +6,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-05-23
+
+### Fixed
+- PyPI upload rejected v1.0.3 with `400 Bad Request: Can't have direct dependency: wrg-threat-intel @ file:../wrg_threat_intel ; extra == "threat-intel"`. The `[project.optional-dependencies] threat-intel` extras used relative `file://` paths that worked inside the WRG monorepo but are not valid for PyPI publication.
+- Removed `[project.optional-dependencies] threat-intel` section temporarily. Users wanting threat-intel + ransom-radar integration must install those packages directly (currently WRG monorepo only; not yet on PyPI). Re-add this extras group via PyPI-resolvable specs once sister packages publish.
+
+### Changed
+- Version bump 1.0.3 -> 1.0.4 (v1.0.3 tag exists locally + on GitHub but never published to PyPI; v1.0.4 is the first WRG-11 standalone PyPI release).
+
 ## [1.0.3] - 2026-05-23
 
 ### Changed

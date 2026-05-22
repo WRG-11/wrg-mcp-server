@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wrg_mcp_server"
-version = "1.0.3"
+version = "1.0.4"
 description = "WRG MCP server - exposes WinstonRedGuard tools to Claude and AI agents"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -45,14 +45,14 @@ Changelog = "https://github.com/WRG-11/wrg-mcp-server/blob/main/CHANGELOG.md"
 remote = [
     "httpx>=0.27,<1.0",
 ]
-threat-intel = [
-    "wrg-threat-intel @ file:../wrg_threat_intel",
-    "ransom-radar @ file:../ransom_radar",
-]
 dev = [
     "pytest>=9.0.3",
     "pytest-asyncio>=0.24",
 ]
+# NOTE: [threat-intel] extras temporarily removed in v1.0.4 -- PyPI rejects
+# direct file:// dependencies (wrg-threat-intel + ransom-radar are not yet
+# on PyPI; sister packages stay in WRG monorepo). Re-add via PyPI-resolvable
+# specs once those packages publish.
 
 [project.scripts]
 wrg-mcp-server = "wrg_mcp_server.cli:main"
