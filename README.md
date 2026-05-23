@@ -3,13 +3,17 @@
 # wrg_mcp_server
 
 [![PyPI](https://img.shields.io/pypi/v/wrg-mcp-server?label=PyPI&color=34D058&style=flat-square)](https://pypi.org/project/wrg-mcp-server/)
+[![Python](https://img.shields.io/pypi/pyversions/wrg-mcp-server)](https://pypi.org/project/wrg-mcp-server/)
+[![CI](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-live-3b82f6?style=flat-square)](https://registry.modelcontextprotocol.io/v0/servers?search=wrg-mcp-server)
 
 MCP (Model Context Protocol) server exposing the WinstonRedGuard monorepo to Claude and other MCP-compatible AI agents. Built on `FastMCP` — registers tools from every active WRG app so an agent can inspect the repo, run pipelines, query memory, and call remote services without shelling out.
 
 **Published:**
-- PyPI: [`wrg-mcp-server`](https://pypi.org/project/wrg-mcp-server/) (v1.0.2)
-- MCP Registry: [`io.github.WRG-11/wrg-mcp-server`](https://registry.modelcontextprotocol.io/v0/servers?search=wrg-mcp-server) (status: `active`)
+- PyPI: [`wrg-mcp-server`](https://pypi.org/project/wrg-mcp-server/) (v1.0.5)
+- MCP Registry: [`io.github.WRG-11/wrg-mcp-server`](https://registry.modelcontextprotocol.io/v0/servers?search=wrg-mcp-server) (status: `active`; re-submission pending for WRG-11 namespace migration)
 
 ## Transports
 
@@ -24,12 +28,20 @@ Flags: `--host 0.0.0.0` · `--port 8080` · `--mcp-path /mcp`
 ## Install
 
 ```bash
-cd apps/wrg_mcp_server
-pip install -e .                  # core: MCP + local tools only
-pip install -e ".[remote]"        # adds httpx for site_* / pulseboard_* tools
-pip install -e ".[threat-intel]"  # adds wrg_threat_intel for attack_surface/ransomware/darkweb tools
-pip install -e ".[dev]"           # pytest + pytest-asyncio
+pip install wrg-mcp-server                 # core: MCP + local tools only
+pip install "wrg-mcp-server[remote]"       # adds httpx for site_* / pulseboard_* tools
+pip install "wrg-mcp-server[dev]"          # pytest + pytest-asyncio
 ```
+
+From source (standalone repo):
+
+```bash
+git clone https://github.com/WRG-11/wrg-mcp-server.git
+cd wrg-mcp-server
+pip install -e ".[dev]"
+```
+
+Note: `[threat-intel]` extras were removed in v1.0.4 (PyPI rejects direct `file://` deps). Sister `wrg_threat_intel` + `ransom_radar` stay in the WRG monorepo for now; will re-add this extras group once they publish to PyPI.
 
 ## Tools exposed
 
@@ -274,6 +286,17 @@ Local tools use `subprocess.run` with `stdin=DEVNULL` (not asyncio subprocess) �
 pytest -q
 ```
 
+## Sister WRG-11 packages
+
+Part of the WRG-11 PyPI portfolio:
+
+- [`instinct-mcp`](https://pypi.org/project/instinct-mcp/) -- MCP server for capturing recurring patterns into structured memory
+- [`wrg-devguard`](https://pypi.org/project/wrg-devguard/) -- Developer-first AI safety: prompt-policy lint + secret scanning + log scanning with PII detection
+- [`wrg-rule-lab`](https://pypi.org/project/wrg-rule-lab/) -- Local-first deterministic rule evaluation engine (zero-dep, stdlib-only)
+- [`ai-security-toolkit`](https://github.com/WRG-11/ai-security-toolkit) -- Offensive + defensive AI/LLM security tools, labs, CTF writeups, research
+
+Built by [WRG-11](https://github.com/WRG-11).
+
 ## Status
 
-Production — 1045 lines, covers every active WRG app, drives the `mcp__wrg__*` tools visible in connected Claude sessions.
+Production -- 1045 lines, covers every active WRG app, drives the `mcp__wrg__*` tools visible in connected Claude sessions.

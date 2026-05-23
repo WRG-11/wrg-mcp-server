@@ -138,7 +138,9 @@ Initial PyPI release of `wrg_mcp_server` after the v1 contract stabilised.
 Surfaced 32 tools across local CLI wrappers, HTTP-API integrations
 (`research_motor_*`), and remote services (`site_*`, `pulseboard_*`).
 
-[Unreleased]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.4...v1.0.5
+[1.0.4]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/yakuphanycl/WinstonRedGuard/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/yakuphanycl/WinstonRedGuard/releases/tag/v1.0.1
