@@ -13,6 +13,7 @@ Audit §1 row 2 promises: success → {ok: True, ...}; not-found →
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -30,6 +31,25 @@ def _get_tool(name: str):
 async def _call(tool_name: str, **kwargs: Any) -> dict[str, Any]:
     """Invoke a registered tool by name with kwargs."""
     return await _get_tool(tool_name).fn(**kwargs)
+
+
+# Monorepo-bound test guard: these tests require the WRG monorepo
+# (apps/wrg_governance/.../registry.json + apps/wrg_mcp_server/pyproject.toml)
+# to be present. In the standalone wrg-mcp-server PyPI repo / GitHub CI,
+# the registry doesn't exist, so app_info("wrg_mcp_server") returns
+# ok=False and these tests skip cleanly instead of failing.
+_REGISTRY_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "apps" / "wrg_governance" / "src" / "wrg_governance"
+    / "registry" / "data" / "registry.json"
+)
+requires_monorepo = pytest.mark.skipif(
+    not _REGISTRY_PATH.exists(),
+    reason=(
+        "Requires WRG monorepo (apps/wrg_governance/.../registry.json); "
+        "skipped in standalone wrg-mcp-server repo / GitHub CI."
+    ),
+)
 
 
 # ── envelope shape (audit §3.1 consistency) ──────────────────────────
@@ -50,6 +70,7 @@ async def test_app_info_envelope_first_key_is_ok() -> None:
 # ── success path: real registry fixture ──────────────────────────────
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_info_known_app_returns_full_envelope() -> None:
     """A real, registered app returns {ok: True} with every documented
@@ -77,6 +98,7 @@ async def test_app_info_known_app_returns_full_envelope() -> None:
     assert result["registry"].get("name") == "wrg_mcp_server"
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_info_pyproject_metadata_populated() -> None:
     """pyproject.toml-derived fields must be real values, not the
@@ -98,6 +120,7 @@ async def test_app_info_pyproject_metadata_populated() -> None:
     assert isinstance(result["requires_python"], str)
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_info_test_files_count_matches_filesystem() -> None:
     """test_files count must match what _count_tests sees on disk
@@ -118,6 +141,7 @@ async def test_app_info_test_files_count_matches_filesystem() -> None:
     )
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_info_last_commit_is_string() -> None:
     """last_commit must always be a string — never None, never raised.

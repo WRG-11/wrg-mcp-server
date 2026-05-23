@@ -39,18 +39,26 @@ async def _call(tool_name: str, **kwargs: Any) -> dict[str, Any]:
 def _live_registry() -> list[dict[str, Any]]:
     """Read the live registry the same way _read_registry does, so
     tests can compute expected values from the canonical source."""
-    repo_root = Path(__file__).resolve().parents[3]
-    reg_path = (
-        repo_root
-        / "apps"
-        / "wrg_governance"
-        / "src"
-        / "wrg_governance"
-        / "registry"
-        / "data"
-        / "registry.json"
-    )
-    return json.loads(reg_path.read_text(encoding="utf-8")).get("apps", [])
+    return json.loads(_REGISTRY_PATH.read_text(encoding="utf-8")).get("apps", [])
+
+
+# Monorepo-bound test guard: these tests require the WRG monorepo
+# (apps/wrg_governance/.../registry.json) to be present. In the standalone
+# wrg-mcp-server PyPI repo / GitHub CI, the registry doesn't exist, so
+# `_live_registry()` raises FileNotFoundError and `_call("app_list")`
+# returns an empty apps list. Skip cleanly instead of failing.
+_REGISTRY_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "apps" / "wrg_governance" / "src" / "wrg_governance"
+    / "registry" / "data" / "registry.json"
+)
+requires_monorepo = pytest.mark.skipif(
+    not _REGISTRY_PATH.exists(),
+    reason=(
+        "Requires WRG monorepo (apps/wrg_governance/.../registry.json); "
+        "skipped in standalone wrg-mcp-server repo / GitHub CI."
+    ),
+)
 
 
 # ── envelope shape (audit §3.1 consistency) ──────────────────────────
@@ -81,6 +89,7 @@ async def test_app_list_returns_full_envelope() -> None:
     assert isinstance(result["active"], int)
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_list_total_matches_registry_length() -> None:
     """`total` MUST equal len(registry["apps"]). Anything else means
@@ -97,6 +106,7 @@ async def test_app_list_total_matches_registry_length() -> None:
     )
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_list_active_matches_status_filter() -> None:
     """`active` MUST equal the count of registry entries with
@@ -113,6 +123,7 @@ async def test_app_list_active_matches_status_filter() -> None:
     )
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_app_list_summary_has_documented_fields() -> None:
     """Each summary dict in `apps` must have exactly the 4 fields the

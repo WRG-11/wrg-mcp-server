@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +17,26 @@ from wrg_mcp_server.local_tools import (
     _read_registry,
     _run_cli,
     register_local_tools,
+)
+
+
+# Monorepo-bound test guard: tests that exercise _read_registry /
+# _read_pyproject / _count_tests / _build_env (with app_name) /
+# _run_cli (with app_name) require the WRG monorepo layout to be
+# present. In the standalone wrg-mcp-server PyPI repo / GitHub CI,
+# apps/wrg_governance/.../registry.json doesn't exist, so these
+# helpers return empty / fail. Skip cleanly instead of failing.
+_REGISTRY_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "apps" / "wrg_governance" / "src" / "wrg_governance"
+    / "registry" / "data" / "registry.json"
+)
+requires_monorepo = pytest.mark.skipif(
+    not _REGISTRY_PATH.exists(),
+    reason=(
+        "Requires WRG monorepo (apps/wrg_governance/.../registry.json); "
+        "skipped in standalone wrg-mcp-server repo / GitHub CI."
+    ),
 )
 
 # ── _run_cli unit tests ──────────────────────────────────────────
@@ -75,6 +96,7 @@ async def test_run_cli_timeout() -> None:
     assert "timed out" in result["error"].lower()
 
 
+@requires_monorepo
 @pytest.mark.asyncio
 async def test_run_cli_with_app_name_sets_pythonpath() -> None:
     """app_name parameter adds the app's src/ to PYTHONPATH."""
@@ -90,6 +112,7 @@ async def test_run_cli_with_app_name_sets_pythonpath() -> None:
 # ── Helper function tests ────────────────────────────────────────
 
 
+@requires_monorepo
 def test_read_registry() -> None:
     """Registry returns a non-empty list of app dicts."""
     apps = _read_registry()
@@ -98,6 +121,7 @@ def test_read_registry() -> None:
     assert all("status" in a for a in apps)
 
 
+@requires_monorepo
 def test_read_pyproject() -> None:
     """Can parse a real pyproject.toml from the monorepo."""
     data = _read_pyproject("wrg_mcp_server")
@@ -111,6 +135,7 @@ def test_read_pyproject_missing() -> None:
     assert data == {}
 
 
+@requires_monorepo
 def test_count_tests() -> None:
     """Count test files for a real app."""
     count = _count_tests("wrg_mcp_server")
@@ -122,6 +147,7 @@ def test_count_tests_missing() -> None:
     assert _count_tests("__nonexistent__") == 0
 
 
+@requires_monorepo
 def test_last_commit() -> None:
     """Last commit returns a non-empty string for a real app."""
     commit = _last_commit("wrg_mcp_server")
@@ -136,6 +162,7 @@ def test_build_env_without_app() -> None:
     assert env["PYTHONIOENCODING"] == "utf-8"
 
 
+@requires_monorepo
 def test_build_env_with_app() -> None:
     """With app_name, PYTHONPATH includes the app's src/."""
     env = _build_env("pulseboard")

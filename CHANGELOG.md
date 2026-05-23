@@ -6,7 +6,38 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.0.6] - 2026-05-23
+## [1.0.7] - 2026-05-23
+
+CI hotfix for standalone repo / GitHub Actions. The v1.0.5 ship added a
+pytest matrix (Linux+Windows x Python 3.11-3.13) via the sister
+`instinct` workflow template, but the test suite includes behavioural
+tests that exercise the live WRG monorepo registry
+(`apps/wrg_governance/.../registry.json`) and per-app pyproject.toml
+files. In the standalone PyPI repo that monorepo layout doesn't exist,
+so 13 monorepo-bound tests fail with `FileNotFoundError` /
+`assert False is True` (app_info returns `ok=False` when the registry
+isn't reachable).
+
+### Fixed
+
+- Added `requires_monorepo` skip guard to 13 monorepo-bound tests:
+  - `tests/test_app_info_behaviour.py`: 4 tests that call
+    `app_info("wrg_mcp_server")` and assert `ok=True` (the registry
+    fixture is required for the app to be findable).
+  - `tests/test_app_list_behaviour.py`: 3 tests that use
+    `_live_registry()` to compute expected counts.
+  - `tests/test_local_tools.py`: 6 tests that exercise
+    `_read_registry` / `_read_pyproject("wrg_mcp_server")` /
+    `_count_tests("wrg_mcp_server")` / `_last_commit("wrg_mcp_server")`
+    / `_build_env(app_name=...)` / `_run_cli(app_name=...)`.
+
+  The guard is `pytest.mark.skipif(not _REGISTRY_PATH.exists(), ...)`
+  where `_REGISTRY_PATH` is the canonical
+  `apps/wrg_governance/.../registry.json` location resolved via
+  `Path(__file__).resolve().parents[3]`. In the monorepo the tests run
+  normally; in the standalone PyPI repo / GitHub CI they skip with a
+  clear reason instead of failing. (R89-03b CI follow-up; verified
+  local: 17 passed + 13 skipped.)
 
 Bundle release: pulls the R89-03b MED + LOW commit-only batch (`b7cc4a4`)
 into a PyPI publication so the README + badges + sister cross-ref +
