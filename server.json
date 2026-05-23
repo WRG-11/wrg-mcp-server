@@ -1,21 +1,20 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.yakuphanycl/wrg-mcp-server",
+  "name": "io.github.WRG-11/wrg-mcp-server",
   "title": "WinstonRedGuard MCP Server",
   "description": "WinstonRedGuard monorepo bridge for MCP agents: governance, pipelines, memory, OSINT tools.",
-  "version": "1.0.1",
-  "websiteUrl": "https://github.com/yakuphanycl/WinstonRedGuard/tree/main/apps/wrg_mcp_server",
+  "version": "1.0.5",
+  "websiteUrl": "https://github.com/WRG-11/wrg-mcp-server",
   "repository": {
-    "url": "https://github.com/yakuphanycl/WinstonRedGuard",
-    "source": "github",
-    "subfolder": "apps/wrg_mcp_server"
+    "url": "https://github.com/WRG-11/wrg-mcp-server",
+    "source": "github"
   },
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "wrg-mcp-server",
-      "version": "1.0.1",
+      "version": "1.0.5",
       "runtimeHint": "pipx",
       "transport": {
         "type": "stdio"

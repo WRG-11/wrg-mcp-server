@@ -6,6 +6,42 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-05-23
+
+Brand consolidation closure patch addressing 3 HIGH findings from the
+R89-03b READ-ONLY portfolio audit (B agent, `from-B/2026-05-23-0100-r89-03b-...-done.md`).
+
+### Fixed
+
+- `server.json` namespace + URL + version drift. The MCP Registry consumes
+  this file as the canonical server identifier, but it was left on the old
+  `yakuphanycl` namespace when pyproject + README + PyPI all migrated to
+  `WRG-11` during v1.0.3. Three changes:
+  - `name`: `io.github.yakuphanycl/wrg-mcp-server` -> `io.github.WRG-11/wrg-mcp-server`
+  - `websiteUrl`: `github.com/yakuphanycl/WinstonRedGuard/tree/main/apps/wrg_mcp_server` -> `github.com/WRG-11/wrg-mcp-server`
+  - `repository.url`: `github.com/yakuphanycl/WinstonRedGuard` -> `github.com/WRG-11/wrg-mcp-server`
+  - `repository.subfolder`: removed (no longer a monorepo subfolder post v1.0.3 sub-tree split).
+  - `version`: 1.0.1 -> 1.0.5 (both root + packages[0]; 3-source drift vs pyproject + git tag closed).
+  - NOTE: MCP Registry re-submission is a separate manual step. The old
+    `io.github.yakuphanycl/wrg-mcp-server` Registry entry becomes orphaned
+    because the OAuth chain to the old GitHub namespace is broken.
+  - (R89-03b HIGH findings #1 + #2 + #6.)
+
+### Added
+
+- `LICENSE` file at repo root with canonical MIT text. `pyproject.toml`
+  declared `license = "MIT"` (PEP 639 SPDX short-form) which satisfies PyPI
+  but does NOT auto-emit a LICENSE file, leaving forks / vendoring consumers
+  without explicit license text. Sister `instinct` template used verbatim.
+  (R89-03b HIGH finding #5.)
+- `.github/workflows/ci.yml`: pytest matrix on Linux + Windows x Python
+  3.11 / 3.12 / 3.13 with `pip install -e ".[dev]"`. Sister `instinct`
+  template adapted (drop `Cursor rules drift check` step which is
+  instinct-specific). (R89-03b HIGH finding #15.)
+- `.github/workflows/codeql.yml`: GitHub CodeQL static analysis on
+  push / PR / weekly schedule (Mondays 03:00 UTC). Sister `instinct`
+  template verbatim. (R89-03b HIGH finding #15.)
+
 ## [1.0.4] - 2026-05-23
 
 ### Fixed
