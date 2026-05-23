@@ -274,8 +274,12 @@ async def test_security_suite_run_allowed_with_flag(
     monkeypatch.setattr(lt, "_run_cli", fake)
     result = await _call("security_suite_run", target="example.com")
     assert result["ok"] is True
-    args = fake.calls[0][0]
-    assert "full" in args and "example.com" in args
+    # Explicit list cast: args is a tuple of CLI positional args (not a URL string);
+    # list-membership semantics make this distinct from URL-substring validation
+    # (CodeQL py/incomplete-url-substring-sanitization fix).
+    args_list = list(fake.calls[0][0])
+    assert "full" in args_list
+    assert "example.com" in args_list
 
 
 @pytest.mark.asyncio
