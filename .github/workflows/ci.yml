@@ -33,3 +33,26 @@ jobs:
 
       - name: Test
         run: python -m pytest tests/ -v
+
+  self-scan:
+    # Cross-portfolio dogfood: scan this repo with our sister wrg-devguard
+    # package (R89-03 dogfooding map Opp X-1). Self-attestation: "this
+    # WRG-11 MCP server is audited with the same WRG-11 security tool we
+    # bridge to Claude."
+    name: self-scan (wrg-devguard on itself)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install wrg-devguard from PyPI
+        run: pip install wrg-devguard
+      - name: Scan own source
+        run: wrg-devguard check --path . --fail-on error --json-out self-scan.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: self-scan-report
+          path: self-scan.json
