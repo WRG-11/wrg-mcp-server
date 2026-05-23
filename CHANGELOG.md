@@ -6,6 +6,34 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-05-23
+
+Bundle release: pulls the R89-03b MED + LOW commit-only batch (`b7cc4a4`)
+into a PyPI publication so the README + badges + sister cross-ref +
+community files become visible to PyPI consumers.
+
+### Documentation
+
+- README: 2 -> 6 badges (added Python + CI + CodeQL + License). (R89-03b
+  MED #13.)
+- README: PyPI version inline `(v1.0.2)` -> `(v1.0.5)` (3-source drift
+  closed). (R89-03b MED #11.)
+- README Install section rewritten for standalone repo:
+  `pip install wrg-mcp-server` primary; new "From source" sub-section;
+  dropped `[threat-intel]` extras mention (removed in v1.0.4). (R89-03b MED #12.)
+- NEW "Sister WRG-11 packages" section (instinct-mcp + wrg-devguard +
+  wrg-rule-lab + ai-security-toolkit cross-links + "Built by WRG-11"
+  footer). (R89-03b MED #20 + LOW #21.)
+- CHANGELOG footer compare URLs: [Unreleased] bumped to v1.0.5...HEAD,
+  new [1.0.4] + [1.0.5] entries added. Historical [1.0.2] + [1.0.1]
+  yakuphanycl preserved per self-consistency. (R89-03b MED #8.)
+
+### Added
+
+- NEW `CONTRIBUTING.md` + `CODE_OF_CONDUCT.md` + `SECURITY.md` community
+  files (sister `instinct` templates adapted with tool contract discipline
+  note: mcp envelope + mutation gate + redact-by-design). (R89-03b LOW #19.)
+
 ## [1.0.5] - 2026-05-23
 
 Brand consolidation closure patch addressing 3 HIGH findings from the
