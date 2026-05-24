@@ -65,8 +65,12 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["src/wrg_mcp_server"]
+# 2026-05-24: SB-40 propagation fix (sister monorepo a01f0c9a):
+# source = ["src/<pkg>"] yields "<pkg> never imported" → 0% reported.
+# Canonical fix: source = ["src"] (E R89-05e audit M2 finding).
+source = ["src"]
 
 [tool.coverage.report]
 # 2026-05-06: 70→95 after coverage wave 2. Current ~98%.
+# 2026-05-24: SB-40 fix may shift actual ~98% → measure post-fix; ratchet if drift.
 fail_under = 95
