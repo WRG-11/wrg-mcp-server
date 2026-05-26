@@ -279,7 +279,13 @@ async def test_security_suite_run_allowed_with_flag(
     # (CodeQL py/incomplete-url-substring-sanitization fix).
     args_list = list(fake.calls[0][0])
     assert "full" in args_list
-    assert "example.com" in args_list
+    # CodeQL false-positive: args_list is a CLI positional args list
+    # (membership test), not a URL string (substring search). The pattern
+    # "X in <list>" can only be a sanitization issue when the right-hand
+    # side is a URL string; here it is a list of CLI args. The list cast
+    # at line 280 makes this explicit. Inline lgtm tag below for legacy
+    # CodeQL-honoured suppression alongside UI dismissal.
+    assert "example.com" in args_list  # lgtm[py/incomplete-url-substring-sanitization]
 
 
 @pytest.mark.asyncio
