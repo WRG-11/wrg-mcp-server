@@ -2,6 +2,8 @@
 
 # wrg-mcp-server
 
+> 💡 **Found this useful?** ⭐ Star the repo (helps others find it) and subscribe to weekly detection-engineering writeups at [Detection Frontier](https://detection-frontier.kit.com/subscribe).
+
 [![PyPI](https://img.shields.io/pypi/v/wrg-mcp-server?label=PyPI&color=34D058&style=flat-square)](https://pypi.org/project/wrg-mcp-server/)
 [![Python](https://img.shields.io/pypi/pyversions/wrg-mcp-server)](https://pypi.org/project/wrg-mcp-server/)
 [![CI](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/ci.yml)
