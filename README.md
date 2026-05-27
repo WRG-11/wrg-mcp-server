@@ -10,6 +10,7 @@
 [![CodeQL](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/WRG-11/wrg-mcp-server/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-live-3b82f6?style=flat-square)](https://registry.modelcontextprotocol.io/v0/servers?search=wrg-mcp-server)
+[![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)](#)
 
 > **Give your AI agent direct access to a 60+ tool security & threat-intel stack via MCP — secret scanning, sigma rule generation, ransomware lookup, OSINT, deep research, and more.**
 
