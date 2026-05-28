@@ -4,3 +4,6 @@ services:
     runtime: docker
     rootDir: apps/wrg_mcp_server
     autoDeploy: true
+    envVars:
+      - key: MCP_TRANSPORT
+        value: streamable-http
