@@ -3,3 +3,4 @@ builder = "dockerfile"
 
 [variables]
 MCP_TRANSPORT = "streamable-http"
+MCP_HOST = "0.0.0.0"
