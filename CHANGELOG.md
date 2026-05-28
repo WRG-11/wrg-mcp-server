@@ -6,6 +6,24 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-05-28
+
+### Fixed
+
+- Dockerfile CMD default transport changed from hard-coded `streamable-http` to
+  env-gated `${MCP_TRANSPORT:-stdio}`. Docker MCP Catalog clients invoke the
+  container as `docker run -i mcp/wrg-mcp-server` (stdio); the previous default
+  (`streamable-http --host 0.0.0.0 --port 8080`) caused catalog clients to fail
+  to attach. Closes P0 from G R89-74g 5-axis Docker MCP Catalog spec audit.
+
+### Added
+
+- `railway.toml`: `[variables] MCP_TRANSPORT = "streamable-http"` — preserves
+  HTTP deployment behaviour for Railway deploys after the CMD default change.
+- `render.yaml`: `envVars: MCP_TRANSPORT: streamable-http` — same preservation
+  for Render deploys. HTTP consumers are unaffected; only the bare
+  `docker run -i` invocation path (catalog/local) changes.
+
 ## [1.0.7] - 2026-05-23
 
 CI hotfix for standalone repo / GitHub Actions. The v1.0.5 ship added a
@@ -197,7 +215,9 @@ Initial PyPI release of `wrg_mcp_server` after the v1 contract stabilised.
 Surfaced 32 tools across local CLI wrappers, HTTP-API integrations
 (`research_motor_*`), and remote services (`site_*`, `pulseboard_*`).
 
-[Unreleased]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.7...v1.0.8
+[1.0.7]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.5...v1.0.7
 [1.0.5]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/WRG-11/wrg-mcp-server/compare/v1.0.2...v1.0.3
