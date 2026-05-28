@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "wrg-mcp-server --transport streamable-http --host 0.0.0.0 --port ${PORT:-8080} --mcp-path /mcp"]
+CMD ["sh", "-c", "wrg-mcp-server --transport ${MCP_TRANSPORT:-stdio} --host ${MCP_HOST:-127.0.0.1} --port ${PORT:-8080} --mcp-path ${MCP_PATH:-/mcp}"]
